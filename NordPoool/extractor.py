@@ -27,7 +27,7 @@ def run_extractor():
     driver = webdriver.Chrome(options=chrome_options)
     wait = WebDriverWait(driver, 15)
 
-    current_date = datetime(2020, 1, 18)
+    current_date = datetime(2020, 4, 1)
     end_date = datetime(2025, 12, 31)
 
     while current_date <= end_date:
@@ -50,7 +50,7 @@ def run_extractor():
             # 3. Clic mediante JavaScript (más fiable en esta web)
             driver.execute_script("arguments[0].click();", export_btn)
             
-            time.sleep(5) 
+            time.sleep(2) 
             
             current_date += timedelta(days=1)
                 
