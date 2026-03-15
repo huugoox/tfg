@@ -5,7 +5,6 @@ from pymongo import MongoClient
 import os
 
 # 1. SETUP FOLDER
-# Creem la carpeta 'analysis' si no existeix per mantenir l'ordre
 output_folder = "analysis"
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
@@ -27,7 +26,6 @@ print("🧹 Cleaning and transforming data...")
 df['datetime'] = pd.to_datetime(df['delivery_day'] + ' ' + df['period_start'], dayfirst=True)
 df = df.sort_values(by=['area', 'datetime'])
 
-# Extraiem característiques temporals per a l'anàlisi
 df['hour'] = df['datetime'].dt.hour
 df['month'] = df['datetime'].dt.month
 df['weekday'] = df['datetime'].dt.weekday
@@ -69,7 +67,7 @@ plt.title('Electricity Price Trend (All Areas)')
 plt.ylabel('Price (EUR/MWh)')
 plt.legend()
 plt.savefig(os.path.join(output_folder, 'price_trend.png'))
-plt.close() # Tanquem la figura per alliberar memòria
+plt.close()
 
 # Plot 2: Hourly Seasonality
 hourly_seasonality = df.groupby('hour')['price'].mean()
