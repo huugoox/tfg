@@ -1,4 +1,4 @@
-from db_client import DbClient
+from ENTSOE.db_client import DbClient
 import pandas as pd
 
 db = DbClient().db

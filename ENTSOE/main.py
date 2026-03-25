@@ -1,7 +1,7 @@
 import os
 import shutil
-from db_client import DbClient
-from extractor import Extractor
+from ENTSOE.db_client import DbClient
+from ENTSOE.extractor import Extractor
 
 # --- CONFIGURATION ---
 INPUT_DIRECTORY = "ExcelFilesNoProcessed"

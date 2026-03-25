@@ -1,6 +1,6 @@
 from numpy import average
 
-from db_client import DbClient
+from ENTSOE.db_client import DbClient
 
 # Initialize connection
 db_client = DbClient()
