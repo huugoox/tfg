@@ -27,12 +27,12 @@ def run_extractor():
     driver = webdriver.Chrome(options=chrome_options)
     wait = WebDriverWait(driver, 15)
 
-    current_date = datetime(2020, 4, 1)
-    end_date = datetime(2025, 12, 31)
+    current_date = datetime(2020, 11, 1)
+    end_date = datetime(2025, 9, 30)
 
     while current_date <= end_date:
         date_str = current_date.strftime("%Y-%m-%d")
-        url = f"https://data.nordpoolgroup.com/auction/day-ahead/prices?deliveryDate={date_str}&currency=EUR&aggregation=DeliveryPeriod&deliveryAreas=EE,LT,LV,AT,BE,FR,GER,NL,PL,DK1,DK2,FI,NO1,NO2,NO3,NO4,NO5,SE1,SE2,SE3,SE4"
+        url = f"https://data.nordpoolgroup.com/auction/day-ahead/prices?deliveryDate={date_str}&currency=EUR&aggregation=DeliveryPeriod&deliveryAreas=EE,LT,LV,AT,BE,FR,GER,NL,DK1,DK2,FI,NO1,NO2,NO3,NO4,NO5,SE1,SE2,SE3,SE4"
         
         print(f"📅 Procesando: {date_str}", end="\r")
         
