@@ -7,7 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-DOWNLOAD_PATH = r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\tfg\NordPoool\ExcelFilesNoProcessed\Prices\2020"
+DOWNLOAD_PATH = r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\tfg\NordPoool\ExcelFilesNoProcessed\Prices\2021"
 os.makedirs(DOWNLOAD_PATH, exist_ok=True)
 
 def wait_for_new_file(path, initial_count, timeout=30):
@@ -35,8 +35,8 @@ def run_extractor():
         }
     )
 
-    current_date = datetime(2020, 11, 1)
-    end_date = datetime(2025, 9, 30)
+    current_date = datetime(2021, 9, 29)
+    end_date = datetime(2025, 12, 31)
     
     areas = "EE,LT,LV,AT,BE,FR,GER,NL,DK1,DK2,FI,NO1,NO2,NO3,NO4,NO5,SE1,SE2,SE3,SE4"
 
