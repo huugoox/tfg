@@ -7,7 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-DOWNLOAD_PATH = r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\tfg\NordPoool\ExcelFilesNoProcessed\Prices\2022"
+DOWNLOAD_PATH = r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\tfg\NordPoool\ExcelFilesNoProcessed\Volumes\2020"
 os.makedirs(DOWNLOAD_PATH, exist_ok=True)
 
 def wait_for_new_file(path, initial_count, timeout=30):
@@ -35,17 +35,17 @@ def run_extractor():
         }
     )
 
-    current_date = datetime(2022, 7, 11)
-    end_date = datetime(2022, 12, 31)
+    current_date = datetime(2020, 5, 30)
+    end_date = datetime(2020, 12, 31)
     
     areas = "EE,LT,LV,AT,BE,FR,GER,NL,DK1,DK2,FI,NO1,NO2,NO3,NO4,NO5,SE1,SE2,SE3,SE4"
 
     while current_date <= end_date:
         date_str = current_date.strftime("%Y-%m-%d")
         # Prices
-        url = f"https://data.nordpoolgroup.com/auction/day-ahead/prices?deliveryDate={date_str}&currency=EUR&aggregation=DeliveryPeriod&deliveryAreas={areas}"
+        #url = f"https://data.nordpoolgroup.com/auction/day-ahead/prices?deliveryDate={date_str}&currency=EUR&aggregation=DeliveryPeriod&deliveryAreas={areas}"
         # Volumes 
-        #url = f"https://data.nordpoolgroup.com/auction/day-ahead/volumes?deliveryDate={date_str}&deliveryAreas={areas}"
+        url = f"https://data.nordpoolgroup.com/auction/day-ahead/volumes?deliveryDate={date_str}&deliveryAreas={areas}"
 
         
         print(f"📅 Procesando: {date_str}", end="\r")
