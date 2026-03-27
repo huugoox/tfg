@@ -8,7 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-DOWNLOAD_PATH = r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\tfg\NordPoool\ExcelFilesNoProcessed\Flows\2020\NO1"
+DOWNLOAD_PATH = r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\tfg\NordPoool\ExcelFilesNoProcessed\Flows\2020\NO2"
 os.makedirs(DOWNLOAD_PATH, exist_ok=True)
 
 def wait_for_new_file(path, initial_count, timeout=40):
@@ -39,12 +39,12 @@ def run_extractor():
         }
     )
 
-    current_date = datetime(2020, 12, 19)
+    current_date = datetime(2020, 6, 21)
     end_date = datetime(2020, 12, 31)
 
     while current_date <= end_date:
         date_str = current_date.strftime("%Y-%m-%d")
-        url = f"https://data.nordpoolgroup.com/auction/day-ahead/flows?deliveryDate={date_str}&deliveryArea=NO1&displayImportExport=true"
+        url = f"https://data.nordpoolgroup.com/auction/day-ahead/flows?deliveryDate={date_str}&deliveryArea=NO2&displayImportExport=true"
 
         print(f"📅 Procesando: {date_str}")
 
