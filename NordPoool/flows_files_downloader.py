@@ -39,7 +39,7 @@ def run_extractor():
         }
     )
 
-    current_date = datetime(2020, 6, 21)
+    current_date = datetime(2020, 12, 21)
     end_date = datetime(2020, 12, 31)
 
     while current_date <= end_date:
