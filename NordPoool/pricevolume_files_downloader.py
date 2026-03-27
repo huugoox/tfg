@@ -46,7 +46,7 @@ def run_extractor():
         #url = f"https://data.nordpoolgroup.com/auction/day-ahead/prices?deliveryDate={date_str}&currency=EUR&aggregation=DeliveryPeriod&deliveryAreas={areas}"
         # Volumes 
         url = f"https://data.nordpoolgroup.com/auction/day-ahead/volumes?deliveryDate={date_str}&deliveryAreas={areas}"
-
+        
         
         print(f"📅 Procesando: {date_str}", end="\r")
         
