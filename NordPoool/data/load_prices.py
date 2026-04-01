@@ -37,7 +37,7 @@ def read_price_file(file_path: Path) -> pd.DataFrame:
 # EXTRACT DATE FROM FILENAME
 # =========================
 def extract_date_from_filename(file_path: Path) -> pd.Timestamp:
-    match = re.search(r"(\d{4}-\d{2}-\d{2})\.xlsx$", file_path.name)
+    match = re.search(r"(\d{4}-\d{2}-\d{2})", file_path.name)
     if not match:
         raise ValueError(f"No se pudo extraer la fecha del archivo: {file_path.name}")
     return pd.to_datetime(match.group(1))
