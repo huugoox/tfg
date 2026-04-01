@@ -26,7 +26,7 @@ INSERT INTO BiddingZones (zone_code, country, region_id) VALUES
 ('SE3', 'Sweden', 3),
 ('SE4', 'Sweden', 3);
 
--- SQL QUERYS TO INSERT DATA INTO THE TABLES (EXAMPLE)
+-- SQL QUERYS TO INSERT DATA INTO THE PRICE TABLE
 -- 1. Row number
 SELECT COUNT(*) FROM Prices;
 
