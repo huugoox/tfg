@@ -39,7 +39,7 @@ def run_extractor():
         }
     )
 
-    current_date = datetime(2022, 7, 1)
+    current_date = datetime(2022, 18, 8)
     end_date = datetime(2022, 12, 31)
 
     areas = "EE,LT,LV,AT,BE,FR,GER,NL,DK1,DK2,FI,NO1,NO2,NO3,NO4,NO5,SE1,SE2,SE3,SE4"

@@ -8,7 +8,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-DOWNLOAD_PATH = r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\tfg\NordPoool\ExcelFilesNoProcessed\Flows\2020\NO4"
+# Flows
+# DOWNLOAD_PATH = r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\TFG_Data\Flows\2020\NO1"
+# Capacities
+DOWNLOAD_PATH = r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\TFG_Data\Capacities\2020\NO1"
 os.makedirs(DOWNLOAD_PATH, exist_ok=True)
 
 def wait_for_new_file(path, initial_count, timeout=40):
@@ -39,12 +42,15 @@ def run_extractor():
         }
     )
 
-    current_date = datetime(2020, 11, 6)
+    current_date = datetime(2020, 8, 18)
     end_date = datetime(2020, 12, 31)
 
     while current_date <= end_date:
         date_str = current_date.strftime("%Y-%m-%d")
-        url = f"https://data.nordpoolgroup.com/auction/day-ahead/flows?deliveryDate={date_str}&deliveryArea=NO4&displayImportExport=true"
+        # Flows
+        # url = f"https://data.nordpoolgroup.com/auction/day-ahead/flows?deliveryDate={date_str}&deliveryArea=NO4&displayImportExport=true"
+        # Capacities
+        url = f"https://data.nordpoolgroup.com/auction/day-ahead/capacities?deliveryDate={date_str}&deliveryArea=NO1"
 
         print(f"📅 Procesando: {date_str}")
 
