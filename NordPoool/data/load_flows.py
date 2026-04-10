@@ -197,7 +197,7 @@ if not flow_columns:
 # WIDE TO LONG
 # =========================
 flows_long = flows_raw.melt(
-    id_vars=["delivery_day", "hour"],
+    id_vars=["delivery_day", "hour", "source_file"],
     value_vars=flow_columns,
     var_name="flow_direction",
     value_name="flow_value"
@@ -232,7 +232,7 @@ if len(missing_to) > 0:
 # FINAL DATAFRAME
 # =========================
 flows_final = flows_long[
-    ["from_zone_id", "to_zone_id", "delivery_day", "hour", "flow_value"]
+    ["from_zone_id", "to_zone_id", "delivery_day", "hour", "flow_value", "source_file"]
 ].copy()
 
 flows_final = flows_final.dropna(
@@ -244,7 +244,33 @@ flows_final["to_zone_id"] = flows_final["to_zone_id"].astype(int)
 flows_final["delivery_day"] = pd.to_datetime(flows_final["delivery_day"]).dt.strftime("%Y-%m-%d")
 flows_final["hour"] = flows_final["hour"].astype(int)
 
-print(f"Filas a insertar antes de ordenar: {len(flows_final)}")
+print(f"Filas a insertar antes de eliminar duplicados: {len(flows_final)}")
+
+# =========================
+# REMOVE DUPLICATES
+# =========================
+duplicate_mask = flows_final.duplicated(
+    subset=["from_zone_id", "to_zone_id", "delivery_day", "hour"],
+    keep="first"
+)
+
+num_duplicates = duplicate_mask.sum()
+print(f"Duplicados exactos detectados: {num_duplicates}")
+
+if num_duplicates > 0:
+    print("Ejemplo de duplicados:")
+    print(
+        flows_final.loc[duplicate_mask, [
+            "from_zone_id", "to_zone_id", "delivery_day", "hour", "flow_value", "source_file"
+        ]].head(10)
+    )
+
+flows_final = flows_final.drop_duplicates(
+    subset=["from_zone_id", "to_zone_id", "delivery_day", "hour"],
+    keep="first"
+).copy()
+
+flows_final = flows_final.drop(columns=["source_file"])
 
 flows_final = flows_final.sort_values(
     ["delivery_day", "hour", "from_zone_id", "to_zone_id"]
@@ -252,7 +278,7 @@ flows_final = flows_final.sort_values(
 
 print("Vista previa final:")
 print(flows_final.head())
-print(f"Filas totales a insertar: {len(flows_final)}")
+print(f"Filas totales a insertar tras deduplicar: {len(flows_final)}")
 
 
 # =========================
