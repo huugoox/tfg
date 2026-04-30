@@ -8,19 +8,47 @@ class SimpleEventDetector:
         df = df.copy()
         df = df.sort_values(["zone_id", "datetime"])
 
+        # Price thresholds per zone
         p10 = df.groupby("zone_id")["price_value"].transform(lambda x: x.quantile(0.10))
         p90 = df.groupby("zone_id")["price_value"].transform(lambda x: x.quantile(0.90))
         p95 = df.groupby("zone_id")["price_value"].transform(lambda x: x.quantile(0.95))
+        p99 = df.groupby("zone_id")["price_value"].transform(lambda x: x.quantile(0.99))
 
+        # Hourly price change
         df["price_delta"] = df.groupby("zone_id")["price_value"].diff()
-        delta_p90 = df.groupby("zone_id")["price_delta"].transform(lambda x: x.quantile(0.90))
+        df["abs_price_delta"] = df["price_delta"].abs()
 
-        df["high_price"] = df["price_value"] > p90
-        df["extreme_price"] = df["price_value"] > p95
+        # Price change thresholds per zone
+        delta_abs_p95 = df.groupby("zone_id")["abs_price_delta"].transform(lambda x: x.quantile(0.95))
+        delta_up_p95 = df.groupby("zone_id")["price_delta"].transform(lambda x: x.quantile(0.95))
+        delta_down_p05 = df.groupby("zone_id")["price_delta"].transform(lambda x: x.quantile(0.05))
+
+        # Rolling volatility
+        df["rolling_volatility_24h"] = (
+            df.groupby("zone_id")["price_value"]
+            .transform(lambda x: x.rolling(window=24, min_periods=6).std())
+        )
+
+        volatility_p90 = df.groupby("zone_id")["rolling_volatility_24h"].transform(
+            lambda x: x.quantile(0.90)
+        )
+
+        # Price level events
         df["low_price"] = df["price_value"] < p10
-        df["price_spike"] = df["price_delta"] > delta_p90
+        df["high_price"] = df["price_value"] > p90
+        df["price_spike"] = df["price_value"] > p95
+        df["extreme_price"] = df["price_value"] > p99
+
+        # Dynamic price events
+        df["rapid_price_change"] = df["abs_price_delta"] > delta_abs_p95
+        df["price_ramp_up"] = df["price_delta"] > delta_up_p95
+        df["price_ramp_down"] = df["price_delta"] < delta_down_p05
+
+        # Volatility regime
+        df["high_volatility"] = df["rolling_volatility_24h"] > volatility_p90
 
         return df
+
 
     def detect_volume_events(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
