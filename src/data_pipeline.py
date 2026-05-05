@@ -208,7 +208,8 @@ class ModelDatasetBuilder:
         add_time_features: bool = False,
         lags: list[int] | None = None,
         target_horizon: int | None = None,
-        dropna: bool = False
+        dropna: bool = False,
+        include_volumes: bool = False
     ) -> pd.DataFrame:
         """
         General price dataset builder.
@@ -241,6 +242,43 @@ class ModelDatasetBuilder:
             start_date=start_date,
             end_date=end_date
         )
+        
+        if include_volumes:
+            volumes = self.loader.load_volumes()
+
+            if zone_ids is not None:
+                volumes = self.preprocessor.filter_zones(
+                    volumes,
+                    zone_col="zone_id",
+                    zones=zone_ids
+                )
+
+            volumes = self.preprocessor.create_datetime_index(volumes)
+
+            volumes = self.preprocessor.filter_dates(
+                volumes,
+                start_date=start_date,
+                end_date=end_date
+            )
+
+            volumes = volumes[
+                [
+                    "zone_id",
+                    "buy_volume_value",
+                    "sell_volume_value"
+                ]
+            ]
+
+            df = df.reset_index()
+            volumes = volumes.reset_index()
+
+            df = df.merge(
+                volumes,
+                on=["datetime", "zone_id"],
+                how="left"
+            )
+
+            df = df.set_index("datetime")
 
         df = df.sort_index()
 
