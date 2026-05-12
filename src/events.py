@@ -49,7 +49,6 @@ class SimpleEventDetector:
 
         return df
 
-
     def detect_volume_events(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         df = df.sort_values(["zone_id", "datetime"])
@@ -323,6 +322,122 @@ class SimpleEventDetector:
 
         return df
     
+    def detect_capacity_events(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Detects simple capacity-based events for each directed interconnection.
+
+        Expected columns:
+        - from_zone_id
+        - to_zone_id
+        - datetime
+        - capacity_value
+        """
+
+        df = df.copy()
+
+        # -------------------------
+        # Handle datetime as column or index
+        # -------------------------
+
+        datetime_was_index = False
+
+        if "datetime" not in df.columns:
+            if isinstance(df.index, pd.DatetimeIndex):
+                datetime_was_index = True
+                df = df.reset_index()
+
+                if "index" in df.columns:
+                    df = df.rename(columns={"index": "datetime"})
+            else:
+                raise ValueError(
+                    "Missing required column 'datetime', and index is not a DatetimeIndex."
+                )
+
+        required_columns = [
+            "from_zone_id",
+            "to_zone_id",
+            "datetime",
+            "capacity_value",
+        ]
+
+        missing_columns = [col for col in required_columns if col not in df.columns]
+
+        if missing_columns:
+            raise ValueError(
+                f"Missing required columns for capacity event detection: {missing_columns}"
+            )
+
+        df = df.sort_values(["from_zone_id", "to_zone_id", "datetime"])
+
+        # -------------------------
+        # Capacity magnitude
+        # -------------------------
+        # Some capacity values may be negative in the raw data.
+        # For simple capacity level events, we use the absolute value
+        # as the available transmission capacity magnitude.
+
+        df["abs_capacity_value"] = df["capacity_value"].abs()
+
+        edge_group = df.groupby(["from_zone_id", "to_zone_id"])
+
+        # -------------------------
+        # Capacity thresholds per directed edge
+        # -------------------------
+
+        capacity_p10 = edge_group["abs_capacity_value"].transform(
+            lambda x: x.quantile(0.10)
+        )
+
+        capacity_p90 = edge_group["abs_capacity_value"].transform(
+            lambda x: x.quantile(0.90)
+        )
+
+        # -------------------------
+        # Basic capacity level events
+        # -------------------------
+
+        df["low_capacity"] = df["abs_capacity_value"] < capacity_p10
+        df["high_capacity"] = df["abs_capacity_value"] > capacity_p90
+
+        # -------------------------
+        # Dynamic capacity events
+        # -------------------------
+
+        df["capacity_delta"] = edge_group["abs_capacity_value"].diff()
+        df["abs_capacity_delta"] = df["capacity_delta"].abs()
+
+        capacity_delta_p95 = edge_group["abs_capacity_delta"].transform(
+            lambda x: x.quantile(0.95)
+        )
+
+        capacity_delta_p05 = edge_group["capacity_delta"].transform(
+            lambda x: x.quantile(0.05)
+        )
+
+        df["capacity_spike"] = df["abs_capacity_delta"] > capacity_delta_p95
+        df["capacity_drop"] = df["capacity_delta"] < capacity_delta_p05
+
+        # -------------------------
+        # General capacity event flag
+        # -------------------------
+
+        capacity_event_columns = [
+            "low_capacity",
+            "high_capacity",
+            "capacity_spike",
+            "capacity_drop",
+        ]
+
+        df["has_capacity_event"] = df[capacity_event_columns].any(axis=1)
+
+        # -------------------------
+        # Restore datetime index if needed
+        # -------------------------
+
+        if datetime_was_index:
+            df = df.set_index("datetime")
+
+        return df
     
 class CombinedEventDetector:
     """
