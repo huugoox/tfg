@@ -124,6 +124,130 @@ class SimpleEventDetector:
 
         return df
     
+    def detect_flow_events(self, df: pd.DataFrame) -> pd.DataFrame:
+        """ Detects simple flow-based events for each directed interconnection.
+
+        Expected columns:
+        - from_zone_id
+        - to_zone_id
+        - datetime
+        - flow_value
+        """
+
+        df = df.copy()
+
+        # -------------------------
+        # Handle datetime as column or index
+        # -------------------------
+
+        datetime_was_index = False
+
+        if "datetime" not in df.columns:
+            if isinstance(df.index, pd.DatetimeIndex):
+                datetime_was_index = True
+                df = df.reset_index()
+
+                if "index" in df.columns:
+                    df = df.rename(columns={"index": "datetime"})
+            else:
+                raise ValueError(
+                    "Missing required column 'datetime', and index is not a DatetimeIndex."
+                )
+
+        required_columns = [
+            "from_zone_id",
+            "to_zone_id",
+            "datetime",
+            "flow_value",
+        ]
+
+        missing_columns = [col for col in required_columns if col not in df.columns]
+
+        if missing_columns:
+            raise ValueError(
+                f"Missing required columns for flow event detection: {missing_columns}"
+            )
+
+        df = df.sort_values(["from_zone_id", "to_zone_id", "datetime"])
+
+        # -------------------------
+        # Absolute flow
+        # -------------------------
+
+        df["abs_flow_value"] = df["flow_value"].abs()
+
+        # -------------------------
+        # Flow thresholds per directed edge
+        # -------------------------
+
+        edge_group = df.groupby(["from_zone_id", "to_zone_id"])
+
+        flow_p10 = edge_group["abs_flow_value"].transform(
+            lambda x: x.quantile(0.10)
+        )
+
+        flow_p90 = edge_group["abs_flow_value"].transform(
+            lambda x: x.quantile(0.90)
+        )
+
+        # -------------------------
+        # Basic flow level events
+        # -------------------------
+
+        df["low_flow"] = df["abs_flow_value"] < flow_p10
+        df["high_flow"] = df["abs_flow_value"] > flow_p90
+
+        # -------------------------
+        # Dynamic flow events
+        # -------------------------
+
+        df["flow_delta"] = edge_group["flow_value"].diff()
+        df["abs_flow_delta"] = df["flow_delta"].abs()
+
+        flow_delta_p95 = edge_group["abs_flow_delta"].transform(
+            lambda x: x.quantile(0.95)
+        )
+
+        df["flow_spike"] = df["abs_flow_delta"] > flow_delta_p95
+
+        # -------------------------
+        # Flow reversal
+        # -------------------------
+        # A reversal happens when the sign of the flow changes
+        # compared with the previous hour for the same directed edge.
+
+        df["flow_sign"] = np.sign(df["flow_value"])
+        df["previous_flow_sign"] = edge_group["flow_sign"].shift(1)
+
+        df["flow_reversal"] = (
+            (df["flow_sign"] != df["previous_flow_sign"]) &
+            df["previous_flow_sign"].notna() &
+            (df["flow_sign"] != 0) &
+            (df["previous_flow_sign"] != 0)
+        )
+
+        # -------------------------
+        # General flow event flag
+        # -------------------------
+
+        flow_event_columns = [
+            "low_flow",
+            "high_flow",
+            "flow_spike",
+            "flow_reversal",
+        ]
+
+        df["has_flow_event"] = df[flow_event_columns].any(axis=1)
+
+        # -------------------------
+        # Restore datetime index if needed
+        # -------------------------
+
+        if datetime_was_index:
+            df = df.set_index("datetime")
+
+        return df
+    
     
 class CombinedEventDetector:
     """
