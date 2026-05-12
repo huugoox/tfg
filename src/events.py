@@ -213,18 +213,93 @@ class SimpleEventDetector:
         # -------------------------
         # Flow reversal
         # -------------------------
-        # A reversal happens when the sign of the flow changes
-        # compared with the previous hour for the same directed edge.
+        # In this dataset, flow direction is represented by separate directed rows:
+        # A -> B and B -> A.
+        # Therefore, reversal is detected by comparing the dominant direction
+        # of each undirected interconnection over time.
 
-        df["flow_sign"] = np.sign(df["flow_value"])
-        df["previous_flow_sign"] = edge_group["flow_sign"].shift(1)
+        df["flow_reversal"] = False
 
-        df["flow_reversal"] = (
-            (df["flow_sign"] != df["previous_flow_sign"]) &
-            df["previous_flow_sign"].notna() &
-            (df["flow_sign"] != 0) &
-            (df["previous_flow_sign"] != 0)
-        )
+        df["_zone_a"] = df[["from_zone_id", "to_zone_id"]].min(axis=1)
+        df["_zone_b"] = df[["from_zone_id", "to_zone_id"]].max(axis=1)
+
+        reversal_rows = []
+
+        for (zone_a, zone_b), pair_df in df.groupby(["_zone_a", "_zone_b"]):
+
+            pair_pivot = pair_df.pivot_table(
+                index="datetime",
+                columns=["from_zone_id", "to_zone_id"],
+                values="flow_value",
+                aggfunc="first"
+            ).fillna(0)
+
+            forward_col = (zone_a, zone_b)
+            reverse_col = (zone_b, zone_a)
+
+            if forward_col not in pair_pivot.columns or reverse_col not in pair_pivot.columns:
+                continue
+
+            forward_flow = pair_pivot[forward_col]
+            reverse_flow = pair_pivot[reverse_col]
+
+            dominant_direction = pd.Series(pd.NA, index=pair_pivot.index, dtype="object")
+
+            dominant_direction[forward_flow > reverse_flow] = "forward"
+            dominant_direction[reverse_flow > forward_flow] = "reverse"
+
+            previous_non_neutral_direction = (
+                dominant_direction
+                .ffill()
+                .shift(1)
+            )
+
+            reversal = (
+                dominant_direction.notna() &
+                previous_non_neutral_direction.notna() &
+                (dominant_direction != previous_non_neutral_direction)
+            )
+
+            reversal_times = pair_pivot.index[reversal]
+
+            for datetime_value in reversal_times:
+                if dominant_direction.loc[datetime_value] == "forward":
+                    reversal_rows.append(
+                        {
+                            "datetime": datetime_value,
+                            "from_zone_id": zone_a,
+                            "to_zone_id": zone_b,
+                            "_flow_reversal_new": True
+                        }
+                    )
+                elif dominant_direction.loc[datetime_value] == "reverse":
+                    reversal_rows.append(
+                        {
+                            "datetime": datetime_value,
+                            "from_zone_id": zone_b,
+                            "to_zone_id": zone_a,
+                            "_flow_reversal_new": True
+                        }
+                    )
+
+        if reversal_rows:
+            reversal_df = pd.DataFrame(reversal_rows)
+
+            df = df.merge(
+                reversal_df,
+                on=["datetime", "from_zone_id", "to_zone_id"],
+                how="left"
+            )
+
+            df["flow_reversal"] = (
+                df["_flow_reversal_new"]
+                .fillna(False)
+                .astype(bool)
+            )
+
+            df = df.drop(columns=["_flow_reversal_new"])
+
+        df = df.drop(columns=["_zone_a", "_zone_b"])
 
         # -------------------------
         # General flow event flag
