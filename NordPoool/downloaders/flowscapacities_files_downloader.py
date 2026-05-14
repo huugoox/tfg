@@ -11,7 +11,7 @@ from selenium.webdriver.support import expected_conditions as EC
 # Flows
 # DOWNLOAD_PATH = r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\TFG_Data\Flows\2020\NO5"
 # Capacities
-DOWNLOAD_PATH = r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\TFG_Data\Capacities\2020\NO3"
+DOWNLOAD_PATH = r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\TFG_Data\Capacities\2020\NO4"
 os.makedirs(DOWNLOAD_PATH, exist_ok=True)
 
 def wait_for_new_file(path, initial_count, timeout=40):
@@ -50,7 +50,7 @@ def run_extractor():
         # Flows
         #url = f"https://data.nordpoolgroup.com/auction/day-ahead/flows?deliveryDate={date_str}&deliveryArea=NO5&displayImportExport=true"
         # Capacities
-        url = f"https://data.nordpoolgroup.com/auction/day-ahead/capacities?deliveryDate={date_str}&deliveryArea=NO3"
+        url = f"https://data.nordpoolgroup.com/auction/day-ahead/capacities?deliveryDate={date_str}&deliveryArea=NO4"
 
         print(f"📅 Procesando: {date_str}")
 
