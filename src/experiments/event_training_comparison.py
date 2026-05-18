@@ -10,6 +10,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 
+from statsmodels.tsa.arima.model import ARIMA
+
 try:
     from xgboost import XGBRegressor
     XGBOOST_AVAILABLE = True
@@ -313,6 +315,100 @@ def train_single_model_with_training_sets(
 
     return model_results, model_predictions
 
+# ============================================================
+# ARIMA MODEL
+# ============================================================
+
+def rolling_arima_forecast(train_y, test_y, order=(3, 0, 3)):
+    """
+    Rolling one-step-ahead ARIMA forecast.
+
+    The model is fitted on the current history and predicts the next value.
+    Then, the real observed test value is added to the history.
+
+    For event-based datasets, the training sequence is not continuous.
+    This is intentional in this experiment, because the goal is to test
+    whether ARIMA can work under the same dataset-reduction setting.
+    """
+
+    history = list(train_y)
+    predictions = []
+
+    for real_value in test_y:
+        try:
+            model = ARIMA(history, order=order)
+            model_fit = model.fit()
+
+            yhat = model_fit.forecast(steps=1)[0]
+
+        except Exception:
+            # Fallback if ARIMA fails with short or unstable event-based data
+            yhat = history[-1]
+
+        predictions.append(yhat)
+        history.append(real_value)
+
+    return np.array(predictions)
+
+
+def train_arima_with_training_sets(
+    train_datasets,
+    df_test,
+    target_col,
+    full_train_size,
+    arima_order=(3, 0, 3),
+):
+    """
+    Trains/evaluates ARIMA using the same training datasets as the ML models:
+    - full_prices
+    - rbatheta_events
+    - own_events
+    """
+
+    model_results = []
+    model_predictions = {}
+
+    y_test = df_test[target_col].astype(float)
+
+    for dataset_name, train_data in train_datasets.items():
+
+        y_train = train_data[target_col].astype(float)
+
+        if len(y_train) < 30:
+            print(f"Skipping ARIMA - {dataset_name}: not enough training samples.")
+            continue
+
+        y_pred = rolling_arima_forecast(
+            train_y=y_train.values,
+            test_y=y_test.values,
+            order=arima_order,
+        )
+
+        metrics = compute_metrics(y_test, y_pred)
+
+        model_results.append({
+            "model": "ARIMA",
+            "training_dataset": dataset_name,
+            "n_train": len(train_data),
+            "n_test": len(df_test),
+            "train_data_used_pct": len(train_data) / full_train_size * 100,
+            "n_features": 1,
+            **metrics,
+        })
+
+        pred_df = pd.DataFrame({
+            "datetime": df_test["datetime"].values,
+            "y_true": y_test.values,
+            "y_pred": y_pred,
+        })
+
+        pred_df["error"] = pred_df["y_true"] - pred_df["y_pred"]
+        pred_df["abs_error"] = pred_df["error"].abs()
+
+        model_predictions[dataset_name] = pred_df
+
+    return model_results, model_predictions
+
 
 def build_results_table(model_results):
     results_table = pd.DataFrame(model_results)
@@ -371,6 +467,8 @@ def run_event_training_comparison(
     feature_cols=None,
     target_col="target_price_1h",
     target_horizon=1,
+    include_arima=True,
+    arima_order=(3, 0, 3),
 ):
     if feature_cols is None:
         feature_cols = [
@@ -427,6 +525,18 @@ def run_event_training_comparison(
 
         all_results.extend(model_results)
         all_predictions[model_name] = model_predictions
+        
+    if include_arima:
+        arima_results, arima_predictions = train_arima_with_training_sets(
+            train_datasets=train_datasets,
+            df_test=df_test_common,
+            target_col=target_col,
+            full_train_size=len(df_train_full),
+            arima_order=arima_order,
+        )
+
+        all_results.extend(arima_results)
+        all_predictions["ARIMA"] = arima_predictions
 
     results_table = build_results_table(all_results)
 
