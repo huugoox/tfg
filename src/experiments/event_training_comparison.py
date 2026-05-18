@@ -350,7 +350,6 @@ def build_results_table(model_results):
     results_table["Data reduction (%)"] = results_table["Data reduction (%)"].round(2)
     results_table["RMSE"] = results_table["RMSE"].round(4)
     results_table["RMSLE"] = results_table["RMSLE"].round(4)
-    results_table["R²"] = results_table["R²"].round(4)
 
     return results_table
 
