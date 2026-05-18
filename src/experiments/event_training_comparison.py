@@ -3,8 +3,9 @@ import sqlite3
 
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
-from sklearn.metrics import mean_squared_error, mean_squared_log_error, r2_score
+from sklearn.metrics import mean_squared_error, mean_squared_log_error
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
@@ -228,8 +229,7 @@ def compute_rmsle_safe(y_true, y_pred):
 def compute_metrics(y_true, y_pred):
     return {
         "RMSE": compute_rmse(y_true, y_pred),
-        "RMSLE": compute_rmsle_safe(y_true, y_pred),
-        "R2": r2_score(y_true, y_pred),
+        "RMSLE": compute_rmsle_safe(y_true, y_pred)
     }
 
 
@@ -325,8 +325,7 @@ def build_results_table(model_results):
             "n_test",
             "train_data_used_pct",
             "RMSE",
-            "RMSLE",
-            "R2",
+            "RMSLE"
         ]
     ].copy()
 
@@ -335,8 +334,7 @@ def build_results_table(model_results):
         "training_dataset": "Training dataset",
         "n_train": "Training samples",
         "n_test": "Test samples",
-        "train_data_used_pct": "Train data used (%)",
-        "R2": "R²",
+        "train_data_used_pct": "Train data used (%)"
     })
 
     full_train_samples = results_table.loc[
@@ -449,7 +447,6 @@ def run_event_training_comparison(
         "Data reduction (%)",
         "RMSE",
         "RMSLE",
-        "R²",
     ]
 
     results_table = results_table[ordered_cols]
@@ -465,3 +462,144 @@ def run_event_training_comparison(
     }
 
     return results_table, experiment_objects
+
+# ============================================================
+# PLOTTING
+# ============================================================
+
+def plot_metric_vs_training_samples_by_model(
+    results_table,
+    metric="RMSE",
+    figsize=(10, 6),
+):
+    """
+    Creates one plot per model showing the selected metric against
+    the number of training samples.
+
+    Parameters
+    ----------
+    results_table : pd.DataFrame
+        Output table returned by run_event_training_comparison().
+    metric : str
+        Metric to plot. Usually "RMSE" or "RMSLE".
+    figsize : tuple
+        Figure size.
+    """
+
+    plot_df = results_table.copy()
+
+    if metric not in plot_df.columns:
+        raise ValueError(f"Metric '{metric}' not found in results table.")
+
+    models = plot_df["Model"].unique()
+
+    for model_name in models:
+        model_df = plot_df[plot_df["Model"] == model_name].copy()
+        model_df = model_df.sort_values(metric)
+
+        plt.figure(figsize=figsize)
+
+        plt.plot(
+            model_df[metric],
+            model_df["Training samples"],
+            marker="o",
+            label=model_name,
+        )
+
+        for _, row in model_df.iterrows():
+            plt.annotate(
+                row["Training dataset"],
+                (row[metric], row["Training samples"]),
+                textcoords="offset points",
+                xytext=(5, 5),
+                ha="left",
+            )
+
+        plt.title(f"{model_name}: {metric} vs Training Samples")
+        plt.xlabel(metric)
+        plt.ylabel("Number of training samples")
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
+
+
+def plot_metric_vs_training_samples_all_models(
+    results_table,
+    metric="RMSE",
+    figsize=(12, 7),
+):
+    """
+    Creates a single summary plot with all models together.
+
+    Parameters
+    ----------
+    results_table : pd.DataFrame
+        Output table returned by run_event_training_comparison().
+    metric : str
+        Metric to plot. Usually "RMSE" or "RMSLE".
+    figsize : tuple
+        Figure size.
+    """
+
+    plot_df = results_table.copy()
+
+    if metric not in plot_df.columns:
+        raise ValueError(f"Metric '{metric}' not found in results table.")
+
+    models = plot_df["Model"].unique()
+
+    plt.figure(figsize=figsize)
+
+    for model_name in models:
+        model_df = plot_df[plot_df["Model"] == model_name].copy()
+        model_df = model_df.sort_values("Training samples")
+
+        plt.plot(
+            model_df[metric],
+            model_df["Training samples"],
+            marker="o",
+            label=model_name,
+        )
+
+    plt.title(f"{metric} vs Training Samples - All Models")
+    plt.xlabel(metric)
+    plt.ylabel("Number of training samples")
+    plt.grid(True, alpha=0.3)
+    plt.legend(loc="upper left", bbox_to_anchor=(1.02, 1))
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_rmse_and_rmsle_by_model(results_table):
+    """
+    Convenience function that creates separated RMSE and RMSLE plots
+    for each model.
+    """
+
+    plot_metric_vs_training_samples_by_model(
+        results_table=results_table,
+        metric="RMSE",
+    )
+
+    plot_metric_vs_training_samples_by_model(
+        results_table=results_table,
+        metric="RMSLE",
+    )
+
+
+def plot_rmse_and_rmsle_all_models(results_table):
+    """
+    Convenience function that creates summary RMSE and RMSLE plots
+    with all models together.
+    """
+
+    plot_metric_vs_training_samples_all_models(
+        results_table=results_table,
+        metric="RMSE",
+    )
+
+    plot_metric_vs_training_samples_all_models(
+        results_table=results_table,
+        metric="RMSLE",
+    )
