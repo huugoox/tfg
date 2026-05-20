@@ -38,8 +38,8 @@ AREAS = [
 MARKET = "DayAhead"
 
 # Cambia aquí el rango que quieres cargar
-START_DATE = date(2020, 1, 1)
-END_DATE = date(2020, 1, 31)
+START_DATE = date(2015, 1, 1)
+END_DATE = date(2024, 12, 31)
 
 
 # =========================
