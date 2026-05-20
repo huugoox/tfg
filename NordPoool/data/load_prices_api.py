@@ -35,8 +35,8 @@ MARKET = "DayAhead"
 CURRENCY = "EUR"
 
 # Cambia aquí el rango que quieres cargar
-START_DATE = date(2019, 1, 1)
-END_DATE = date(2019, 12, 31)
+START_DATE = date(2018, 1, 1)
+END_DATE = date(2018, 12, 31)
 
 
 # =========================
