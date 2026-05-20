@@ -19,9 +19,6 @@ if not db_path.exists():
 # =========================
 # API CONFIG
 # =========================
-USERNAME = ""
-PASSWORD = "t1E7(So6vw3CSp1Y%)"
-
 USERNAME = os.getenv("NORDPOOL_USERNAME")
 PASSWORD = os.getenv("NORDPOOL_PASSWORD")
 
