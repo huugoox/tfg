@@ -35,8 +35,8 @@ MARKET = "DayAhead"
 CURRENCY = "EUR"
 
 # Cambia aquí el rango que quieres cargar
-START_DATE = date(2018, 1, 1)
-END_DATE = date(2018, 12, 31)
+START_DATE = date(2015, 1, 1)
+END_DATE = date(2024, 12, 31)
 
 
 # =========================
@@ -219,22 +219,18 @@ print(f"\nFilas finales: {len(prices_final)}")
 
 
 # =========================
-# DELETE EXISTING DATA IN DATE RANGE
+# RESET PRICES TABLE
 # =========================
-print("\nEliminando datos existentes en el rango seleccionado...")
+print("\nVaciando tabla Prices y reiniciando price_id...")
 
 cursor = conn.cursor()
 
-cursor.execute(
-    """
-    DELETE FROM Prices
-    WHERE delivery_day BETWEEN ? AND ?
-    """,
-    (
-        START_DATE.strftime("%Y-%m-%d"),
-        END_DATE.strftime("%Y-%m-%d")
-    )
-)
+cursor.execute("DELETE FROM Prices")
+
+try:
+    cursor.execute("DELETE FROM sqlite_sequence WHERE name = 'Prices'")
+except sqlite3.OperationalError:
+    pass
 
 conn.commit()
 
