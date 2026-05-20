@@ -18,8 +18,8 @@ if not db_path.exists():
 # =========================
 # API CONFIG
 # =========================
-USERNAME = "TU_USUARIO"
-PASSWORD = "TU_PASSWORD"
+USERNAME = "API_DATA_USN"
+PASSWORD = "t1E7(So6vw3CSp1Y%)"
 
 TOKEN_URL = "https://sts.nordpoolgroup.com/connect/token"
 PRICES_URL = "https://data-api.nordpoolgroup.com/api/v2/Auction/Prices/ByAreas"
