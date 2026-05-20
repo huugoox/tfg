@@ -18,15 +18,15 @@ if not db_path.exists():
 # =========================
 # API CONFIG
 # =========================
-USERNAME = "API_DATA_USN"
-PASSWORD = "t1E7(So6vw3CSp1Y%)"
+USERNAME = "TU_USUARIO"
+PASSWORD = "TU_PASSWORD"
 
 TOKEN_URL = "https://sts.nordpoolgroup.com/connect/token"
 PRICES_URL = "https://data-api.nordpoolgroup.com/api/v2/Auction/Prices/ByAreas"
 
 AREAS = [
-    "EE", "LT", "LV",
-    "DK1", "DK2", "FI",
+    "DK1", "DK2",
+    "EE", "FI", "LT", "LV",
     "NO1", "NO2", "NO3", "NO4", "NO5",
     "SE1", "SE2", "SE3", "SE4"
 ]
@@ -34,8 +34,10 @@ AREAS = [
 MARKET = "DayAhead"
 CURRENCY = "EUR"
 
-START_DATE = date(2020, 1, 1)
-END_DATE = date(2020, 1, 3)  # Primero probamos solo 3 días
+# Cambia aquí el rango que quieres cargar
+START_DATE = date(2019, 1, 1)
+END_DATE = date(2019, 12, 31)
+
 
 # =========================
 # GET ACCESS TOKEN
@@ -72,8 +74,8 @@ def daterange(start_date: date, end_date: date):
     while current <= end_date:
         yield current
         current += timedelta(days=1)
-        
-        
+
+
 # =========================
 # DOWNLOAD ONE DAY
 # =========================
@@ -143,10 +145,14 @@ for day in daterange(START_DATE, END_DATE):
     df_day = prices_json_to_long_dataframe(data)
     all_prices.append(df_day)
 
+if not all_prices:
+    raise ValueError("No se ha descargado ningún dato.")
+
 prices_long = pd.concat(all_prices, ignore_index=True)
 
-print("Shape descargado:", prices_long.shape)
+print("\nShape descargado:", prices_long.shape)
 print(prices_long.head())
+
 
 # =========================
 # CONNECT TO DB AND GET ZONES
@@ -161,8 +167,9 @@ zones_df = pd.read_sql_query(
 zone_map = dict(zip(zones_df["zone_code"], zones_df["zone_id"]))
 valid_zone_codes = set(zone_map.keys())
 
-print("Zone codes en DB:", sorted(valid_zone_codes))
+print("\nZone codes en DB:", sorted(valid_zone_codes))
 print("Zone codes descargados:", sorted(prices_long["zone_code"].unique()))
+
 
 # =========================
 # MAP ZONE CODES TO ZONE IDS
@@ -175,8 +182,13 @@ missing_zones = prices_long.loc[
 ].unique()
 
 if len(missing_zones) > 0:
+    conn.close()
     raise ValueError(f"Zonas no encontradas en BiddingZones: {missing_zones}")
 
+
+# =========================
+# FINAL DATAFRAME
+# =========================
 prices_final = prices_long[
     ["zone_id", "delivery_day", "hour", "price_value"]
 ].copy()
@@ -196,13 +208,36 @@ prices_final = prices_final.dropna(
     subset=["zone_id", "delivery_day", "hour", "price_value"]
 )
 
+# Ordenado para que encaje bien con análisis temporal/event-based
 prices_final = prices_final.sort_values(
     ["delivery_day", "hour", "zone_id"]
 ).reset_index(drop=True)
 
-print("Vista previa final:")
+print("\nVista previa final:")
 print(prices_final.head(20))
-print("Filas finales:", len(prices_final))
+print(f"\nFilas finales: {len(prices_final)}")
+
+
+# =========================
+# DELETE EXISTING DATA IN DATE RANGE
+# =========================
+print("\nEliminando datos existentes en el rango seleccionado...")
+
+cursor = conn.cursor()
+
+cursor.execute(
+    """
+    DELETE FROM Prices
+    WHERE delivery_day BETWEEN ? AND ?
+    """,
+    (
+        START_DATE.strftime("%Y-%m-%d"),
+        END_DATE.strftime("%Y-%m-%d")
+    )
+)
+
+conn.commit()
+
 
 # =========================
 # INSERT INTO SQLITE
@@ -220,4 +255,4 @@ prices_final.to_sql(
 conn.commit()
 conn.close()
 
-print("Prices insertados correctamente.")
+print("\nPrices insertados correctamente.")
