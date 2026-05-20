@@ -163,3 +163,43 @@ valid_zone_codes = set(zone_map.keys())
 
 print("Zone codes en DB:", sorted(valid_zone_codes))
 print("Zone codes descargados:", sorted(prices_long["zone_code"].unique()))
+
+# =========================
+# MAP ZONE CODES TO ZONE IDS
+# =========================
+prices_long["zone_id"] = prices_long["zone_code"].map(zone_map)
+
+missing_zones = prices_long.loc[
+    prices_long["zone_id"].isna(),
+    "zone_code"
+].unique()
+
+if len(missing_zones) > 0:
+    raise ValueError(f"Zonas no encontradas en BiddingZones: {missing_zones}")
+
+prices_final = prices_long[
+    ["zone_id", "delivery_day", "hour", "price_value"]
+].copy()
+
+prices_final["delivery_day"] = pd.to_datetime(
+    prices_final["delivery_day"]
+).dt.strftime("%Y-%m-%d")
+
+prices_final["hour"] = prices_final["hour"].astype(int)
+prices_final["zone_id"] = prices_final["zone_id"].astype(int)
+prices_final["price_value"] = pd.to_numeric(
+    prices_final["price_value"],
+    errors="coerce"
+)
+
+prices_final = prices_final.dropna(
+    subset=["zone_id", "delivery_day", "hour", "price_value"]
+)
+
+prices_final = prices_final.sort_values(
+    ["delivery_day", "hour", "zone_id"]
+).reset_index(drop=True)
+
+print("Vista previa final:")
+print(prices_final.head(20))
+print("Filas finales:", len(prices_final))
