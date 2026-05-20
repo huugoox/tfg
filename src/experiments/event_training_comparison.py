@@ -180,6 +180,41 @@ def split_train_test_periods(
 
     return df_train_full, df_test_common
 
+def split_calibration_train_test_periods(
+    df_model,
+    calibration_start,
+    calibration_end,
+    train_start,
+    train_end,
+    test_start,
+    test_end,
+):
+    calibration_start_ts = pd.Timestamp(calibration_start)
+    calibration_end_ts = pd.Timestamp(calibration_end + " 23:00:00")
+
+    train_start_ts = pd.Timestamp(train_start)
+    train_end_ts = pd.Timestamp(train_end + " 23:00:00")
+
+    test_start_ts = pd.Timestamp(test_start)
+    test_end_ts = pd.Timestamp(test_end + " 23:00:00")
+
+    df_calibration = df_model[
+        (df_model["datetime"] >= calibration_start_ts)
+        & (df_model["datetime"] <= calibration_end_ts)
+    ].copy()
+
+    df_train_full = df_model[
+        (df_model["datetime"] >= train_start_ts)
+        & (df_model["datetime"] <= train_end_ts)
+    ].copy()
+
+    df_test_common = df_model[
+        (df_model["datetime"] >= test_start_ts)
+        & (df_model["datetime"] <= test_end_ts)
+    ].copy()
+
+    return df_calibration, df_train_full, df_test_common
+
 
 # ============================================================
 # EVENT TRAINING DATASETS
