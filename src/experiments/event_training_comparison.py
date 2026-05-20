@@ -766,25 +766,23 @@ def plot_metric_vs_training_samples_by_model(
     results_table,
     metric="RMSE",
     figsize=(10, 6),
+    save_dir=None,
 ):
     """
     Creates one plot per model showing the selected metric against
     the number of training samples.
 
-    Parameters
-    ----------
-    results_table : pd.DataFrame
-        Output table returned by run_event_training_comparison().
-    metric : str
-        Metric to plot. Usually "RMSE" or "RMSLE".
-    figsize : tuple
-        Figure size.
+    If save_dir is provided, the plots are also saved as PNG files.
     """
 
     plot_df = results_table.copy()
 
     if metric not in plot_df.columns:
         raise ValueError(f"Metric '{metric}' not found in results table.")
+
+    if save_dir is not None:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
 
     models = plot_df["Model"].unique()
 
@@ -816,6 +814,25 @@ def plot_metric_vs_training_samples_by_model(
         plt.grid(True, alpha=0.3)
         plt.legend()
         plt.tight_layout()
+
+        if save_dir is not None:
+            safe_model_name = (
+                model_name
+                .replace(" ", "_")
+                .replace("/", "_")
+                .replace("\\", "_")
+            )
+
+            output_path = save_dir / f"{safe_model_name}_{metric}_vs_training_samples.png"
+
+            plt.savefig(
+                output_path,
+                dpi=300,
+                bbox_inches="tight",
+            )
+
+            print("Saved:", output_path)
+
         plt.show()
 
 
