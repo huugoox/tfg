@@ -147,3 +147,19 @@ prices_long = pd.concat(all_prices, ignore_index=True)
 
 print("Shape descargado:", prices_long.shape)
 print(prices_long.head())
+
+# =========================
+# CONNECT TO DB AND GET ZONES
+# =========================
+conn = sqlite3.connect(db_path)
+
+zones_df = pd.read_sql_query(
+    "SELECT zone_id, zone_code FROM BiddingZones",
+    conn
+)
+
+zone_map = dict(zip(zones_df["zone_code"], zones_df["zone_id"]))
+valid_zone_codes = set(zone_map.keys())
+
+print("Zone codes en DB:", sorted(valid_zone_codes))
+print("Zone codes descargados:", sorted(prices_long["zone_code"].unique()))
