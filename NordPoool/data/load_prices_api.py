@@ -3,6 +3,7 @@ from datetime import date, timedelta
 import sqlite3
 import requests
 import pandas as pd
+import os
 
 
 # =========================
@@ -18,8 +19,14 @@ if not db_path.exists():
 # =========================
 # API CONFIG
 # =========================
-USERNAME = "API_DATA_USN"
+USERNAME = ""
 PASSWORD = "t1E7(So6vw3CSp1Y%)"
+
+USERNAME = os.getenv("NORDPOOL_USERNAME")
+PASSWORD = os.getenv("NORDPOOL_PASSWORD")
+
+if USERNAME is None or PASSWORD is None:
+    raise ValueError("Faltan las variables de entorno NORDPOOL_USERNAME o NORDPOOL_PASSWORD")
 
 TOKEN_URL = "https://sts.nordpoolgroup.com/connect/token"
 PRICES_URL = "https://data-api.nordpoolgroup.com/api/v2/Auction/Prices/ByAreas"
