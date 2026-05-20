@@ -63,6 +63,58 @@ def load_train_test_prices(
 
     return df_prices
 
+def load_calibration_train_test_prices(
+    db_path,
+    zone_code,
+    calibration_start,
+    calibration_end,
+    train_start,
+    train_end,
+    test_start,
+    test_end,
+):
+    conn = sqlite3.connect(db_path)
+
+    query = """
+    SELECT 
+        p.price_id,
+        p.zone_id,
+        bz.zone_code,
+        p.delivery_day,
+        p.hour,
+        p.price_value
+    FROM Prices p
+    JOIN BiddingZones bz 
+        ON p.zone_id = bz.zone_id
+    WHERE bz.zone_code = ?
+      AND (
+            (p.delivery_day >= ? AND p.delivery_day <= ?)
+            OR
+            (p.delivery_day >= ? AND p.delivery_day <= ?)
+            OR
+            (p.delivery_day >= ? AND p.delivery_day <= ?)
+          )
+    ORDER BY p.delivery_day, p.hour
+    """
+
+    df_prices = pd.read_sql_query(
+        query,
+        conn,
+        params=(
+            zone_code,
+            calibration_start,
+            calibration_end,
+            train_start,
+            train_end,
+            test_start,
+            test_end,
+        ),
+    )
+
+    conn.close()
+
+    return df_prices
+
 
 # ============================================================
 # DATASET PREPARATION
