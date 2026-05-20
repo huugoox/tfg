@@ -220,6 +220,41 @@ def split_calibration_train_test_periods(
 # EVENT TRAINING DATASETS
 # ============================================================
 
+# ============================================================
+# CALIBRATED PRICE EVENTS
+# ============================================================
+
+def calibrate_price_event_thresholds(df_calibration):
+    """
+    Computes event thresholds using only the calibration period.
+    """
+
+    df = df_calibration.copy()
+    df = df.sort_values("datetime").reset_index(drop=True)
+
+    df["price_delta"] = df["price_value"].diff()
+    df["abs_price_delta"] = df["price_delta"].abs()
+
+    df["rolling_volatility_24h"] = (
+        df["price_value"]
+        .rolling(window=24, min_periods=12)
+        .std()
+    )
+
+    thresholds = {
+        "low_price": df["price_value"].quantile(0.10),
+        "high_price": df["price_value"].quantile(0.90),
+        "extreme_price": df["price_value"].quantile(0.95),
+        "price_spike": df["price_delta"].quantile(0.90),
+        "rapid_price_change": df["abs_price_delta"].quantile(0.95),
+        "price_ramp_up": df["price_delta"].quantile(0.95),
+        "price_ramp_down": df["price_delta"].quantile(0.05),
+        "high_volatility": df["rolling_volatility_24h"].quantile(0.90),
+    }
+
+    return thresholds
+
+
 def build_rbatheta_train_dataset(df_train_full, rbatheta_events_path):
     df_rba = pd.read_csv(rbatheta_events_path)
     df_rba["datetime"] = pd.to_datetime(df_rba["datetime"])
