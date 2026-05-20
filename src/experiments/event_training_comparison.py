@@ -254,6 +254,70 @@ def calibrate_price_event_thresholds(df_calibration):
 
     return thresholds
 
+def apply_calibrated_price_events(df, thresholds):
+    """
+    Applies frozen event thresholds to a new period.
+    """
+
+    df_events = df.copy()
+    df_events = df_events.sort_values("datetime").reset_index(drop=True)
+
+    df_events["price_delta"] = df_events["price_value"].diff()
+    df_events["abs_price_delta"] = df_events["price_delta"].abs()
+
+    df_events["rolling_volatility_24h"] = (
+        df_events["price_value"]
+        .rolling(window=24, min_periods=12)
+        .std()
+    )
+
+    df_events["low_price"] = (
+        df_events["price_value"] < thresholds["low_price"]
+    )
+
+    df_events["high_price"] = (
+        df_events["price_value"] > thresholds["high_price"]
+    )
+
+    df_events["extreme_price"] = (
+        df_events["price_value"] > thresholds["extreme_price"]
+    )
+
+    df_events["price_spike"] = (
+        df_events["price_delta"] > thresholds["price_spike"]
+    )
+
+    df_events["rapid_price_change"] = (
+        df_events["abs_price_delta"] > thresholds["rapid_price_change"]
+    )
+
+    df_events["price_ramp_up"] = (
+        df_events["price_delta"] > thresholds["price_ramp_up"]
+    )
+
+    df_events["price_ramp_down"] = (
+        df_events["price_delta"] < thresholds["price_ramp_down"]
+    )
+
+    df_events["high_volatility"] = (
+        df_events["rolling_volatility_24h"] > thresholds["high_volatility"]
+    )
+
+    own_event_cols = [
+        "low_price",
+        "high_price",
+        "price_spike",
+        "extreme_price",
+        "rapid_price_change",
+        "price_ramp_up",
+        "price_ramp_down",
+        "high_volatility",
+    ]
+
+    df_events["own_event"] = df_events[own_event_cols].any(axis=1)
+
+    return df_events, own_event_cols
+
 
 def build_rbatheta_train_dataset(df_train_full, rbatheta_events_path):
     df_rba = pd.read_csv(rbatheta_events_path)
