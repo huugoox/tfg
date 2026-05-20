@@ -34,8 +34,8 @@ AREAS = [
 MARKET = "DayAhead"
 CURRENCY = "EUR"
 
-START_DATE = date(2019, 1, 1)
-END_DATE = date(2019, 1, 3)  # Primero probamos solo 3 días
+START_DATE = date(2020, 1, 1)
+END_DATE = date(2020, 1, 3)  # Primero probamos solo 3 días
 
 # =========================
 # GET ACCESS TOKEN
@@ -203,3 +203,21 @@ prices_final = prices_final.sort_values(
 print("Vista previa final:")
 print(prices_final.head(20))
 print("Filas finales:", len(prices_final))
+
+# =========================
+# INSERT INTO SQLITE
+# =========================
+print("\nInsertando datos en Prices...")
+
+prices_final.to_sql(
+    "Prices",
+    conn,
+    if_exists="append",
+    index=False,
+    chunksize=10000
+)
+
+conn.commit()
+conn.close()
+
+print("Prices insertados correctamente.")
