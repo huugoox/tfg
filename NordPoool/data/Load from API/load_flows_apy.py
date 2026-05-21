@@ -66,6 +66,7 @@ headers = {
 
 params = {
     "areas": AREAS,
+    "market": "DayAhead",
     "date": DAY.strftime("%Y-%m-%d"),
 }
 
