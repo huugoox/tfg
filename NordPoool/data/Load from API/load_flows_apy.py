@@ -15,7 +15,7 @@ if USERNAME is None or PASSWORD is None:
 TOKEN_URL = "https://sts.nordpoolgroup.com/connect/token"
 
 # Primero probamos este endpoint
-FLOWS_URL = "https://data-api.nordpoolgroup.com/api/v2/PowerSystem/Flows/ByAreas"
+FLOWS_URL = "https://data-api.nordpoolgroup.com/api/v2/Auction/Flows/ByAreas"
 
 AREAS = [
     "DK1", "DK2",
