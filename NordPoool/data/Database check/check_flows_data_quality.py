@@ -375,6 +375,115 @@ print(f"\nTotal physical links: {len(physical_link_coverage)}")
 
 
 # =========================
+# PHYSICAL LINK COVERAGE PERCENTAGE
+# =========================
+# This estimates how much of the possible hourly coverage is available
+# for each physical link.
+#
+# Expected rows are computed between the first and last available date
+# of each physical link, not necessarily between 2015-01-01 and 2024-12-31.
+# This is useful because some links appear later in the dataset.
+
+physical_link_coverage_pct = pd.read_sql_query(
+    """
+    WITH normalized_flows AS (
+        SELECT
+            delivery_day,
+            hour,
+            flow_value,
+            CASE 
+                WHEN from_zone_id < to_zone_id THEN from_zone_id
+                ELSE to_zone_id
+            END AS zone_a_id,
+            CASE 
+                WHEN from_zone_id < to_zone_id THEN to_zone_id
+                ELSE from_zone_id
+            END AS zone_b_id
+        FROM Flows
+    ),
+    link_summary AS (
+        SELECT
+            zone_a_id,
+            zone_b_id,
+            MIN(delivery_day) AS min_day,
+            MAX(delivery_day) AS max_day,
+            COUNT(*) AS actual_rows,
+            COUNT(DISTINCT delivery_day) AS actual_days
+        FROM normalized_flows
+        GROUP BY zone_a_id, zone_b_id
+    )
+    SELECT
+        za.zone_code AS zone_a,
+        zb.zone_code AS zone_b,
+        ls.min_day,
+        ls.max_day,
+        ls.actual_days,
+        ls.actual_rows
+    FROM link_summary ls
+    JOIN BiddingZones za
+        ON ls.zone_a_id = za.zone_id
+    JOIN BiddingZones zb
+        ON ls.zone_b_id = zb.zone_id
+    ORDER BY za.zone_code, zb.zone_code
+    """,
+    conn
+)
+
+# Compute expected rows in Python because it is easier and safer
+# to handle leap years and date ranges here.
+coverage_rows = []
+
+for _, row in physical_link_coverage_pct.iterrows():
+    min_day = pd.to_datetime(row["min_day"])
+    max_day = pd.to_datetime(row["max_day"])
+
+    expected_hours = pd.date_range(
+        start=min_day,
+        end=max_day + pd.Timedelta(days=1),
+        freq="h",
+        inclusive="left"
+    )
+
+    expected_rows = len(expected_hours)
+    actual_rows = int(row["actual_rows"])
+
+    coverage_pct = round((actual_rows / expected_rows) * 100, 2) if expected_rows > 0 else None
+
+    coverage_rows.append({
+        "zone_a": row["zone_a"],
+        "zone_b": row["zone_b"],
+        "min_day": row["min_day"],
+        "max_day": row["max_day"],
+        "actual_days": int(row["actual_days"]),
+        "actual_rows": actual_rows,
+        "expected_rows_24h": expected_rows,
+        "coverage_pct": coverage_pct,
+        "missing_rows_estimate": expected_rows - actual_rows
+    })
+
+coverage_pct_df = pd.DataFrame(coverage_rows)
+
+coverage_pct_df = coverage_pct_df.sort_values(
+    ["coverage_pct", "zone_a", "zone_b"]
+).reset_index(drop=True)
+
+print("\n=========================")
+print("PHYSICAL LINK COVERAGE PERCENTAGE")
+print("=========================")
+print(coverage_pct_df)
+
+print("\n=========================")
+print("LOWEST COVERAGE PHYSICAL LINKS")
+print("=========================")
+print(coverage_pct_df.head(10))
+
+print("\n=========================")
+print("HIGHEST COVERAGE PHYSICAL LINKS")
+print("=========================")
+print(coverage_pct_df.tail(10))
+
+
+# =========================
 # CONNECTION COVERAGE SUMMARY
 # =========================
 connection_coverage = pd.read_sql_query(
