@@ -37,7 +37,7 @@ AREAS = [
 
 MARKET = "DayAhead"
 
-START_DATE = date(2015, 1, 1)
+START_DATE = date(2020, 1, 1)
 END_DATE = date(2024, 12, 31)
 
 # =========================
