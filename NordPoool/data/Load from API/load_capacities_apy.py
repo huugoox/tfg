@@ -38,7 +38,7 @@ AREAS = [
 MARKET = "DayAhead"
 
 START_DATE = date(2020, 1, 1)
-END_DATE = date(2024, 12, 31)
+END_DATE = date(2020, 12, 31)
 
 # =========================
 # GET ACCESS TOKEN
@@ -359,18 +359,18 @@ print(f"\nFilas finales: {len(capacities_final)}")
 # =========================
 # RESET CAPACITIES TABLE
 # =========================
-print("\nVaciando tabla Capacities y reiniciando capacity_id...")
-
-cursor = conn.cursor()
-
-cursor.execute("DELETE FROM Capacities")
-
-try:
-    cursor.execute("DELETE FROM sqlite_sequence WHERE name = 'Capacities'")
-except sqlite3.OperationalError:
-    pass
-
-conn.commit()
+# print("\nVaciando tabla Capacities y reiniciando capacity_id...")
+#
+# cursor = conn.cursor()
+#
+# cursor.execute("DELETE FROM Capacities")
+#
+# try:
+#     cursor.execute("DELETE FROM sqlite_sequence WHERE name = 'Capacities'")
+# except sqlite3.OperationalError:
+#     pass
+#
+# conn.commit()
 
 
 # =========================
