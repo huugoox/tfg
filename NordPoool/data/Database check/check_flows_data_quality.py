@@ -264,32 +264,114 @@ print(zero_flows)
 
 
 # =========================
-# DAYS WITH UNEXPECTED HOURS PER CONNECTION
+# PHYSICAL LINK COVERAGE CHECK
 # =========================
-hours_per_day_connection = pd.read_sql_query(
+# A physical link is considered undirected:
+# DK1 -> DK2 and DK2 -> DK1 belong to the same physical connection.
+# This is more appropriate for checking daily hourly coverage,
+# because the flow direction can change within the same day.
+
+physical_link_hours = pd.read_sql_query(
     """
+    WITH normalized_flows AS (
+        SELECT
+            delivery_day,
+            hour,
+            CASE 
+                WHEN from_zone_id < to_zone_id THEN from_zone_id
+                ELSE to_zone_id
+            END AS zone_a_id,
+            CASE 
+                WHEN from_zone_id < to_zone_id THEN to_zone_id
+                ELSE from_zone_id
+            END AS zone_b_id
+        FROM Flows
+    )
     SELECT
-        delivery_day,
-        from_zone_id,
-        to_zone_id,
-        COUNT(*) AS n_hours
-    FROM Flows
-    GROUP BY delivery_day, from_zone_id, to_zone_id
-    HAVING COUNT(*) NOT IN (23, 24, 25)
-    ORDER BY delivery_day, from_zone_id, to_zone_id
+        nf.delivery_day,
+        za.zone_code AS zone_a,
+        zb.zone_code AS zone_b,
+        COUNT(DISTINCT nf.hour) AS n_hours,
+        COUNT(*) AS n_rows
+    FROM normalized_flows nf
+    JOIN BiddingZones za
+        ON nf.zone_a_id = za.zone_id
+    JOIN BiddingZones zb
+        ON nf.zone_b_id = zb.zone_id
+    GROUP BY
+        nf.delivery_day,
+        nf.zone_a_id,
+        nf.zone_b_id
+    HAVING COUNT(DISTINCT nf.hour) NOT IN (23, 24, 25)
+    ORDER BY
+        nf.delivery_day,
+        zone_a,
+        zone_b
     """,
     conn
 )
 
 print("\n=========================")
-print("CONNECTION-DAYS WITH UNEXPECTED NUMBER OF HOURS")
+print("PHYSICAL LINK-DAYS WITH UNEXPECTED NUMBER OF HOURS")
 print("=========================")
 
-if hours_per_day_connection.empty:
-    print("Todas las conexiones-día tienen 23, 24 o 25 horas.")
+if physical_link_hours.empty:
+    print("Todos los enlaces físicos tienen 23, 24 o 25 horas por día.")
 else:
-    print(hours_per_day_connection.head(100))
-    print(f"Total casos raros: {len(hours_per_day_connection)}")
+    print(physical_link_hours.head(100))
+    print(f"Total casos raros: {len(physical_link_hours)}")
+    
+    
+# =========================
+# PHYSICAL LINK COVERAGE SUMMARY
+# =========================
+physical_link_coverage = pd.read_sql_query(
+    """
+    WITH normalized_flows AS (
+        SELECT
+            delivery_day,
+            hour,
+            flow_value,
+            CASE 
+                WHEN from_zone_id < to_zone_id THEN from_zone_id
+                ELSE to_zone_id
+            END AS zone_a_id,
+            CASE 
+                WHEN from_zone_id < to_zone_id THEN to_zone_id
+                ELSE from_zone_id
+            END AS zone_b_id
+        FROM Flows
+    )
+    SELECT
+        za.zone_code AS zone_a,
+        zb.zone_code AS zone_b,
+        COUNT(DISTINCT nf.delivery_day) AS n_days,
+        COUNT(*) AS n_rows,
+        MIN(nf.delivery_day) AS min_day,
+        MAX(nf.delivery_day) AS max_day,
+        MIN(nf.flow_value) AS min_flow,
+        MAX(nf.flow_value) AS max_flow,
+        AVG(nf.flow_value) AS avg_flow
+    FROM normalized_flows nf
+    JOIN BiddingZones za
+        ON nf.zone_a_id = za.zone_id
+    JOIN BiddingZones zb
+        ON nf.zone_b_id = zb.zone_id
+    GROUP BY
+        nf.zone_a_id,
+        nf.zone_b_id
+    ORDER BY
+        zone_a,
+        zone_b
+    """,
+    conn
+)
+
+print("\n=========================")
+print("PHYSICAL LINK COVERAGE SUMMARY")
+print("=========================")
+print(physical_link_coverage)
+print(f"\nTotal physical links: {len(physical_link_coverage)}")
 
 
 # =========================
