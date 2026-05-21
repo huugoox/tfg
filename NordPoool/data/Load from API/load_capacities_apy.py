@@ -38,7 +38,7 @@ AREAS = [
 MARKET = "DayAhead"
 
 START_DATE = date(2015, 1, 1)
-END_DATE = date(2024, 12, 31)
+END_DATE = date(2020, 12, 31)
 
 # =========================
 # GET ACCESS TOKEN
