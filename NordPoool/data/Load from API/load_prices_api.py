@@ -222,21 +222,21 @@ print(prices_final.head(20))
 print(f"\nFilas finales: {len(prices_final)}")
 
 
-# =========================
-# RESET PRICES TABLE
-# =========================
-print("\nVaciando tabla Prices y reiniciando price_id...")
+# # =========================
+# # RESET PRICES TABLE
+# # =========================
+# print("\nVaciando tabla Prices y reiniciando price_id...")
 
-cursor = conn.cursor()
+# cursor = conn.cursor()
 
-cursor.execute("DELETE FROM Prices")
+# cursor.execute("DELETE FROM Prices")
 
-try:
-    cursor.execute("DELETE FROM sqlite_sequence WHERE name = 'Prices'")
-except sqlite3.OperationalError:
-    pass
+# try:
+#     cursor.execute("DELETE FROM sqlite_sequence WHERE name = 'Prices'")
+# except sqlite3.OperationalError:
+#     pass
 
-conn.commit()
+# conn.commit()
 
 
 # =========================
