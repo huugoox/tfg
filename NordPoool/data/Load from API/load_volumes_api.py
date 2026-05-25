@@ -38,8 +38,8 @@ AREAS = [
 MARKET = "DayAhead"
 
 # Cambia aquí el rango que quieres cargar
-START_DATE = date(2015, 1, 1)
-END_DATE = date(2024, 12, 31)
+START_DATE = date(2025, 1, 1)
+END_DATE = date(2025, 9, 30)
 
 
 # =========================
@@ -242,18 +242,18 @@ print(f"\nFilas finales: {len(volumes_final)}")
 # =========================
 # RESET VOLUMES TABLE
 # =========================
-print("\nVaciando tabla Volumes y reiniciando volume_id...")
+# print("\nVaciando tabla Volumes y reiniciando volume_id...")
 
-cursor = conn.cursor()
+# cursor = conn.cursor()
 
-cursor.execute("DELETE FROM Volumes")
+# cursor.execute("DELETE FROM Volumes")
 
-try:
-    cursor.execute("DELETE FROM sqlite_sequence WHERE name = 'Volumes'")
-except sqlite3.OperationalError:
-    pass
+# try:
+#     cursor.execute("DELETE FROM sqlite_sequence WHERE name = 'Volumes'")
+# except sqlite3.OperationalError:
+#     pass
 
-conn.commit()
+# conn.commit()
 
 
 # =========================

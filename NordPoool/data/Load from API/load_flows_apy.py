@@ -38,8 +38,8 @@ AREAS = [
 MARKET = "DayAhead"
 
 # Primero prueba pocos días
-START_DATE = date(2015, 1, 1)
-END_DATE = date(2024, 12, 31)
+START_DATE = date(2025, 1, 1)
+END_DATE = date(2025, 9, 30)
 
 
 # =========================
@@ -312,18 +312,18 @@ print(f"\nFilas finales: {len(flows_final)}")
 # =========================
 # RESET FLOWS TABLE
 # =========================
-print("\nVaciando tabla Flows y reiniciando flow_id...")
+# print("\nVaciando tabla Flows y reiniciando flow_id...")
 
-cursor = conn.cursor()
+# cursor = conn.cursor()
 
-cursor.execute("DELETE FROM Flows")
+# cursor.execute("DELETE FROM Flows")
 
-try:
-    cursor.execute("DELETE FROM sqlite_sequence WHERE name = 'Flows'")
-except sqlite3.OperationalError:
-    pass
+# try:
+#     cursor.execute("DELETE FROM sqlite_sequence WHERE name = 'Flows'")
+# except sqlite3.OperationalError:
+#     pass
 
-conn.commit()
+# conn.commit()
 
 
 # =========================
