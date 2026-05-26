@@ -38,8 +38,8 @@ AREAS = [
 MARKET = "DayAhead"
 
 # Primero prueba pocos días
-START_DATE = date(2000, 1, 1)
-END_DATE = date(2003, 12, 31)
+START_DATE = date(2004, 1, 1)
+END_DATE = date(2007, 12, 31)
 
 
 # =========================
