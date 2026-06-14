@@ -416,8 +416,8 @@ def compute_rmsle_safe(y_true, y_pred):
 
 def compute_metrics(y_true, y_pred):
     return {
-        "RMSE": compute_rmse(y_true, y_pred),
-        "RMSLE": compute_rmsle_safe(y_true, y_pred)
+        "RMSE": compute_rmse(y_true, y_pred)
+        # "RMSLE": compute_rmsle_safe(y_true, y_pred)
     }
 
 
@@ -607,7 +607,7 @@ def build_results_table(model_results):
             "n_test",
             "train_data_used_pct",
             "RMSE",
-            "RMSLE"
+            #"RMSLE"
         ]
     ].copy()
 
@@ -631,7 +631,7 @@ def build_results_table(model_results):
     results_table["Train data used (%)"] = results_table["Train data used (%)"].round(2)
     results_table["Data reduction (%)"] = results_table["Data reduction (%)"].round(2)
     results_table["RMSE"] = results_table["RMSE"].round(4)
-    results_table["RMSLE"] = results_table["RMSLE"].round(4)
+    #results_table["RMSLE"] = results_table["RMSLE"].round(4)
 
     return results_table
 
@@ -741,7 +741,7 @@ def run_event_training_comparison(
         "Train data used (%)",
         "Data reduction (%)",
         "RMSE",
-        "RMSLE",
+        #"RMSLE",
     ]
 
     results_table = results_table[ordered_cols]
@@ -894,10 +894,10 @@ def plot_rmse_and_rmsle_by_model(results_table):
         metric="RMSE",
     )
 
-    plot_metric_vs_training_samples_by_model(
-        results_table=results_table,
-        metric="RMSLE",
-    )
+    # plot_metric_vs_training_samples_by_model(
+    #     results_table=results_table,
+    #     metric="RMSLE",
+    # )
 
 
 def plot_rmse_and_rmsle_all_models(results_table):
@@ -911,7 +911,7 @@ def plot_rmse_and_rmsle_all_models(results_table):
         metric="RMSE",
     )
 
-    plot_metric_vs_training_samples_all_models(
-        results_table=results_table,
-        metric="RMSLE",
-    )
+    # plot_metric_vs_training_samples_all_models(
+    #     results_table=results_table,
+    #     metric="RMSLE",
+    # )
