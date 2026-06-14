@@ -504,36 +504,28 @@ def train_single_model_with_training_sets(
 # ARIMA MODEL
 # ============================================================
 
-def rolling_arima_forecast(train_y, test_y, order=(3, 0, 3)):
+def fast_arima_forecast(train_y, test_y, order=(1, 0, 1)):
     """
-    Rolling one-step-ahead ARIMA forecast.
+    Fast ARIMA forecast.
 
-    The model is fitted on the current history and predicts the next value.
-    Then, the real observed test value is added to the history.
-
-    For event-based datasets, the training sequence is not continuous.
-    This is intentional in this experiment, because the goal is to test
-    whether ARIMA can work under the same dataset-reduction setting.
+    The model is fitted only once on the training series and then forecasts
+    the complete test horizon.
     """
 
-    history = list(train_y)
-    predictions = []
+    train_y = np.asarray(train_y, dtype=float)
+    test_y = np.asarray(test_y, dtype=float)
 
-    for real_value in test_y:
-        try:
-            model = ARIMA(history, order=order)
-            model_fit = model.fit()
+    try:
+        model = ARIMA(train_y, order=order)
+        model_fit = model.fit()
 
-            yhat = model_fit.forecast(steps=1)[0]
+        predictions = model_fit.forecast(steps=len(test_y))
 
-        except Exception:
-            # Fallback if ARIMA fails with short or unstable event-based data
-            yhat = history[-1]
+    except Exception:
+        # Fallback if ARIMA fails with short or unstable event-based data
+        predictions = np.repeat(train_y[-1], len(test_y))
 
-        predictions.append(yhat)
-        history.append(real_value)
-
-    return np.array(predictions)
+    return np.asarray(predictions)
 
 
 def train_arima_with_training_sets(
@@ -541,7 +533,7 @@ def train_arima_with_training_sets(
     df_test,
     target_col,
     full_train_size,
-    arima_order=(3, 0, 3),
+    arima_order=(1, 0, 1),
 ):
     """
     Trains/evaluates ARIMA using the same training datasets as the ML models:
@@ -563,7 +555,7 @@ def train_arima_with_training_sets(
             print(f"Skipping ARIMA - {dataset_name}: not enough training samples.")
             continue
 
-        y_pred = rolling_arima_forecast(
+        y_pred = fast_arima_forecast(
             train_y=y_train.values,
             test_y=y_test.values,
             order=arima_order,
