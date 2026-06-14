@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sklearn.metrics import mean_squared_error, mean_squared_log_error
+from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
@@ -402,22 +402,21 @@ def compute_rmse(y_true, y_pred):
     return np.sqrt(mean_squared_error(y_true, y_pred))
 
 
-def compute_rmsle_safe(y_true, y_pred):
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
+# def compute_rmsle_safe(y_true, y_pred):
+#     y_true = np.asarray(y_true)
+#     y_pred = np.asarray(y_pred)
 
-    # RMSLE does not accept negative values.
-    # Electricity prices can be negative, so we clip only for this metric.
-    y_true_clip = np.clip(y_true, a_min=0, a_max=None)
-    y_pred_clip = np.clip(y_pred, a_min=0, a_max=None)
+#     # RMSLE does not accept negative values.
+#     # Electricity prices can be negative, so we clip only for this metric.
+#     y_true_clip = np.clip(y_true, a_min=0, a_max=None)
+#     y_pred_clip = np.clip(y_pred, a_min=0, a_max=None)
 
-    return np.sqrt(mean_squared_log_error(y_true_clip, y_pred_clip))
+#     return np.sqrt(mean_squared_log_error(y_true_clip, y_pred_clip))
 
 
 def compute_metrics(y_true, y_pred):
     return {
         "RMSE": compute_rmse(y_true, y_pred)
-        # "RMSLE": compute_rmsle_safe(y_true, y_pred)
     }
 
 
@@ -607,7 +606,6 @@ def build_results_table(model_results):
             "n_test",
             "train_data_used_pct",
             "RMSE",
-            #"RMSLE"
         ]
     ].copy()
 
