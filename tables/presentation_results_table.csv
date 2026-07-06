@@ -1,0 +1,91 @@
+Zone,Calibration,Model,Dataset,Training samples,total_raw_values,Raw values used (%),Raw value reduction (%),RMSE_mean
+NO2,cal_2020,ARIMA,rbatheta_events,5696,14896,22.45,77.55,39.7729
+NO2,cal_2020,ARIMA,own_events,8764,27973,42.16,57.84,40.1424
+NO2,cal_2020,ARIMA,full_dataset,8764,66346,100.0,0.0,40.1424
+NO2,cal_2020_2021,ARIMA,rbatheta_events,5696,14896,22.45,77.55,39.7729
+NO2,cal_2020_2021,ARIMA,own_events,8532,23435,35.32,64.68,40.1587
+NO2,cal_2020_2021,ARIMA,full_dataset,8764,66346,100.0,0.0,40.1424
+NO2,cal_2020_2022,ARIMA,rbatheta_events,5696,14896,22.45,77.55,39.7729
+NO2,cal_2020_2022,ARIMA,own_events,6934,14967,22.56,77.44,39.8064
+NO2,cal_2020_2022,ARIMA,full_dataset,8764,66346,100.0,0.0,40.1424
+NO2,cal_2020,Decision Tree,rbatheta_events,5696,14896,22.45,77.55,17.5986
+NO2,cal_2020,Decision Tree,own_events,8764,27973,42.16,57.84,16.1522
+NO2,cal_2020,Decision Tree,full_dataset,8764,66346,100.0,0.0,16.1522
+NO2,cal_2020_2021,Decision Tree,rbatheta_events,5696,14896,22.45,77.55,17.5986
+NO2,cal_2020_2021,Decision Tree,own_events,8532,23435,35.32,64.68,16.5897
+NO2,cal_2020_2021,Decision Tree,full_dataset,8764,66346,100.0,0.0,16.1522
+NO2,cal_2020_2022,Decision Tree,rbatheta_events,5696,14896,22.45,77.55,17.5986
+NO2,cal_2020_2022,Decision Tree,own_events,6934,14967,22.56,77.44,17.2334
+NO2,cal_2020_2022,Decision Tree,full_dataset,8764,66346,100.0,0.0,16.1522
+NO2,cal_2020,Linear Regression,rbatheta_events,5696,14896,22.45,77.55,12.1485
+NO2,cal_2020,Linear Regression,own_events,8764,27973,42.16,57.84,12.1759
+NO2,cal_2020,Linear Regression,full_dataset,8764,66346,100.0,0.0,12.1759
+NO2,cal_2020_2021,Linear Regression,rbatheta_events,5696,14896,22.45,77.55,12.1485
+NO2,cal_2020_2021,Linear Regression,own_events,8532,23435,35.32,64.68,12.1911
+NO2,cal_2020_2021,Linear Regression,full_dataset,8764,66346,100.0,0.0,12.1759
+NO2,cal_2020_2022,Linear Regression,rbatheta_events,5696,14896,22.45,77.55,12.1485
+NO2,cal_2020_2022,Linear Regression,own_events,6934,14967,22.56,77.44,12.2497
+NO2,cal_2020_2022,Linear Regression,full_dataset,8764,66346,100.0,0.0,12.1759
+NO2,cal_2020,Random Forest,rbatheta_events,5696,14896,22.45,77.55,12.2449
+NO2,cal_2020,Random Forest,own_events,8764,27973,42.16,57.84,12.0591
+NO2,cal_2020,Random Forest,full_dataset,8764,66346,100.0,0.0,12.0591
+NO2,cal_2020_2021,Random Forest,rbatheta_events,5696,14896,22.45,77.55,12.2449
+NO2,cal_2020_2021,Random Forest,own_events,8532,23435,35.32,64.68,12.1723
+NO2,cal_2020_2021,Random Forest,full_dataset,8764,66346,100.0,0.0,12.0591
+NO2,cal_2020_2022,Random Forest,rbatheta_events,5696,14896,22.45,77.55,12.2449
+NO2,cal_2020_2022,Random Forest,own_events,6934,14967,22.56,77.44,12.1052
+NO2,cal_2020_2022,Random Forest,full_dataset,8764,66346,100.0,0.0,12.0591
+NO2,cal_2020,XGBoost,rbatheta_events,5696,14896,22.45,77.55,11.4351
+NO2,cal_2020,XGBoost,own_events,8764,27973,42.16,57.84,11.3864
+NO2,cal_2020,XGBoost,full_dataset,8764,66346,100.0,0.0,11.3864
+NO2,cal_2020_2021,XGBoost,rbatheta_events,5696,14896,22.45,77.55,11.4351
+NO2,cal_2020_2021,XGBoost,own_events,8532,23435,35.32,64.68,11.3967
+NO2,cal_2020_2021,XGBoost,full_dataset,8764,66346,100.0,0.0,11.3864
+NO2,cal_2020_2022,XGBoost,rbatheta_events,5696,14896,22.45,77.55,11.4351
+NO2,cal_2020_2022,XGBoost,own_events,6934,14967,22.56,77.44,11.4796
+NO2,cal_2020_2022,XGBoost,full_dataset,8764,66346,100.0,0.0,11.3864
+NO4,cal_2020,ARIMA,rbatheta_events,3556,10991,9.21,90.79,23.7136
+NO4,cal_2020,ARIMA,own_events,8758,39953,33.49,66.51,16.9645
+NO4,cal_2020,ARIMA,full_dataset,8764,119313,100.0,0.0,16.9602
+NO4,cal_2020_2021,ARIMA,rbatheta_events,3556,10991,9.21,90.79,23.7136
+NO4,cal_2020_2021,ARIMA,own_events,8469,32829,27.52,72.48,16.9724
+NO4,cal_2020_2021,ARIMA,full_dataset,8764,119313,100.0,0.0,16.9602
+NO4,cal_2020_2022,ARIMA,rbatheta_events,3556,10991,9.21,90.79,23.7136
+NO4,cal_2020_2022,ARIMA,own_events,8375,31964,26.79,73.21,16.9583
+NO4,cal_2020_2022,ARIMA,full_dataset,8764,119313,100.0,0.0,16.9602
+NO4,cal_2020,Decision Tree,rbatheta_events,3556,10991,9.21,90.79,8.2309
+NO4,cal_2020,Decision Tree,own_events,8758,39953,33.49,66.51,6.6613
+NO4,cal_2020,Decision Tree,full_dataset,8764,119313,100.0,0.0,6.7234
+NO4,cal_2020_2021,Decision Tree,rbatheta_events,3556,10991,9.21,90.79,8.2309
+NO4,cal_2020_2021,Decision Tree,own_events,8469,32829,27.52,72.48,6.6261
+NO4,cal_2020_2021,Decision Tree,full_dataset,8764,119313,100.0,0.0,6.7234
+NO4,cal_2020_2022,Decision Tree,rbatheta_events,3556,10991,9.21,90.79,8.2309
+NO4,cal_2020_2022,Decision Tree,own_events,8375,31964,26.79,73.21,6.4855
+NO4,cal_2020_2022,Decision Tree,full_dataset,8764,119313,100.0,0.0,6.7234
+NO4,cal_2020,Linear Regression,rbatheta_events,3556,10991,9.21,90.79,3.0471
+NO4,cal_2020,Linear Regression,own_events,8758,39953,33.49,66.51,2.8563
+NO4,cal_2020,Linear Regression,full_dataset,8764,119313,100.0,0.0,2.8561
+NO4,cal_2020_2021,Linear Regression,rbatheta_events,3556,10991,9.21,90.79,3.0471
+NO4,cal_2020_2021,Linear Regression,own_events,8469,32829,27.52,72.48,2.8619
+NO4,cal_2020_2021,Linear Regression,full_dataset,8764,119313,100.0,0.0,2.8561
+NO4,cal_2020_2022,Linear Regression,rbatheta_events,3556,10991,9.21,90.79,3.0471
+NO4,cal_2020_2022,Linear Regression,own_events,8375,31964,26.79,73.21,2.8659
+NO4,cal_2020_2022,Linear Regression,full_dataset,8764,119313,100.0,0.0,2.8561
+NO4,cal_2020,Random Forest,rbatheta_events,3556,10991,9.21,90.79,5.4895
+NO4,cal_2020,Random Forest,own_events,8758,39953,33.49,66.51,3.8603
+NO4,cal_2020,Random Forest,full_dataset,8764,119313,100.0,0.0,3.8422
+NO4,cal_2020_2021,Random Forest,rbatheta_events,3556,10991,9.21,90.79,5.4895
+NO4,cal_2020_2021,Random Forest,own_events,8469,32829,27.52,72.48,3.9689
+NO4,cal_2020_2021,Random Forest,full_dataset,8764,119313,100.0,0.0,3.8422
+NO4,cal_2020_2022,Random Forest,rbatheta_events,3556,10991,9.21,90.79,5.4895
+NO4,cal_2020_2022,Random Forest,own_events,8375,31964,26.79,73.21,3.9887
+NO4,cal_2020_2022,Random Forest,full_dataset,8764,119313,100.0,0.0,3.8422
+NO4,cal_2020,XGBoost,rbatheta_events,3556,10991,9.21,90.79,8.0552
+NO4,cal_2020,XGBoost,own_events,8758,39953,33.49,66.51,3.726
+NO4,cal_2020,XGBoost,full_dataset,8764,119313,100.0,0.0,3.7107
+NO4,cal_2020_2021,XGBoost,rbatheta_events,3556,10991,9.21,90.79,8.0552
+NO4,cal_2020_2021,XGBoost,own_events,8469,32829,27.52,72.48,3.6753
+NO4,cal_2020_2021,XGBoost,full_dataset,8764,119313,100.0,0.0,3.7107
+NO4,cal_2020_2022,XGBoost,rbatheta_events,3556,10991,9.21,90.79,8.0552
+NO4,cal_2020_2022,XGBoost,own_events,8375,31964,26.79,73.21,3.5241
+NO4,cal_2020_2022,XGBoost,full_dataset,8764,119313,100.0,0.0,3.7107

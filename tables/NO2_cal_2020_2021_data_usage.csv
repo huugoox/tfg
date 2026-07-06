@@ -1,0 +1,4 @@
+Zone,Calibration,Calibration period,Dataset,price_values,buy_volume_values,sell_volume_values,flow_values,capacity_values,total_raw_values,Raw values used (%),Raw value reduction (%)
+NO2,cal_2020_2021,2020-01-01 to 2021-12-31,full_dataset,8760,8760,8760,22548,17518,66346,100.0,0.0
+NO2,cal_2020_2021,2020-01-01 to 2021-12-31,own_events,6447,5600,2832,7074,1482,23435,35.322400747595935,64.67759925240406
+NO2,cal_2020_2021,2020-01-01 to 2021-12-31,rbatheta_events,2212,1101,2394,9189,0,14896,22.451994091580502,77.5480059084195
