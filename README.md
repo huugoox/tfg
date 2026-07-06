@@ -1,83 +1,72 @@
-# TFG
-## 01-03-2026
-**Tasques realitzades:**
+# Data-Efficient Electricity Price Forecasting Using Event-Based Market Representations
 
-**DEFINICIÓ DE DADES I ESTRUCTURA INICIAL**
+This repository contains the implementation of the Final Degree Thesis focused on one-hour-ahead electricity price forecasting using different data representations of Nord Pool day-ahead electricity market information.
 
-1. <u>Creació base de dades no relacional </u>
+The main objective of the project is not to propose a new forecasting model, but to analyse whether the same electricity market information can be organised in different ways and still preserve useful predictive information while reducing the amount of raw data used for model training.
 
-    S’ha creat una base de dades en MongoDB (Sense esquema predefinit)
+## Project overview
 
-2. <u> Configuració d'un contenidor Docker per a la base de dades + Volum persistent per a l’emmagatzematge de dades. </u>
+The project compares three training data representations:
 
-    Creació docker-compose.yml amb imatge de mongodb
+1. **Full dataset**  
+   Uses the complete set of available raw market observations.
 
+2. **rbaTheta event representation**  
+   Uses automatically detected event timestamps obtained from the rbaTheta event detection method.
 
-**EXTRACIÓ I INGESTIÓ DE DADES**
+3. **Own market event representation**  
+   Uses market-informed events defined from prices, volumes, flows and capacities. These events are calibrated on historical data and then applied to the training period using frozen thresholds.
 
-Per aquesta tasca s’ha definit un arxiu main.py en el qual es realitzen els següents pasos:
+The forecasting task is one-hour-ahead electricity price prediction.
 
-1. <u> Connexió base de dades </u>
+## Data
 
-    Mitjançant una classe DbClient en el arxiu db_client.py es fa la connexió amb la base de dades tfg_database que tenim a MongoDb creada.
+The experiments use Nord Pool day-ahead market data, including:
 
-Tot el procés que es menciona a continuació s'ha realitzat en base a un tipus concret d'arxiu: preus extrets d'ENTSO-E desde el 01/01/2025 al 31/12/2025 (període d'un any).
+- Electricity prices
+- Buy and sell volumes
+- Cross-border flows
+- Transmission capacities
 
-2. <u>  Processament arxius </u>
+The data are stored in a SQLite database and processed into training and testing datasets.
 
-    Descarrega manual de les dades desde la web ENTSO-E i creació de dues carpetes (ExcelFilesNoProcessed,ExcelFilesProcessed)
+## Final experiment
 
-    *Actualment aquest procés es realitza de manera manual, es preveu automatitzar-lo mitjançant tècniques com ara l’ús de Selenium (problemes amb el login i doble factor).
+The final experiment focuses on two Norwegian bidding zones:
 
-3. <u> Extració </u>
+- **NO2**: high-volatility bidding zone
+- **NO4**: low-volatility bidding zone
 
-    Mitjançant una classe Extractor en el arxiu extractor.py (s’extreuen les dades en funció del format del document)
+The own event representation is evaluated under three calibration periods:
 
-4. <u> Inserció base de dades </u>
+- 2020
+- 2020--2021
+- 2020--2022
 
-    Mitjançant una classe DbClient en el arxiu db_client.py es fa la connexió amb la base de dades tfg_database que tenim a MongoDb creada.
+The models are trained using data from 2023 and evaluated on five independent test weeks from 2024.
 
+## Forecasting models
 
-**ANÀLISIS DE DADES**
+The following forecasting models are evaluated:
 
-**Detecció 1**
+- ARIMA
+- Linear Regression
+- Decision Tree
+- Random Forest
+- XGBoost
 
-En un primer anàlisis per tal de veure si tots els registres s’han guardat correctament s’ha detectat la següent anomalia:
+The main evaluation metric is RMSE.
 
-Les dades estan registrades cada 15 minuts durant cada hora i dia de l’any la qual cosa ens genera un total de 35.040 registres (4 * 24 * 365). 
+## Repository structure
 
-*En anys de 366 dies serien: 35.136
-
-La creació de un petit codi en el arxiu check_db.py ens ha permès detectar una anomalía relacionada amb el nombre de registres guardats.
-Aquest ens indica que cada zona conté 35.028 cosa que denota una falta, no molt significativa, de 12 registres per zona.
-
-Després d'un anàlisi dels factors que podrien haver provocat aquest fet s'ha arribat a la següent conclusió:
-Els dies on es canvia la hora, en l’any 2025 van estar 30/03 i 26/10.
-
-En aquests les dades tenen un format lleugerament diferent:
-1. Cas 30/03
-En aquest cas l’hora s'adelante per lo tant tindrem 23 hores en el dia, és a dir, de 02.00 a 03.00 no hi ha dades perquè aquesta hora no existeix.
-
-    ![Descripción de la imagen](images/Cas%201%20(30-03).png)
-
-2. Cas 26/10
-En aquest cas l’hora s’atrassa per lo tant tindriem 25 hores en el dia.
-    ![Descripción de la imagen](images/Cas%202%20(26-10).png)
-
-Tot i així tindrem 35.028 de 35.040 que sería un 99.96% de dades la qual cosa representa perdre un 0.04% de les dades únicament per utilitzar una plataforma diferent.
-
-Les dues solucions possibles passen per:
-
-1. Adaptar el codi d'extractor.py per aquestes files en concret
-2. Utilitzar dades de NordPool (podien contenir anomalíes també)
-
-
-**Detecció 2**
-
-Amb el mateix codi utilitzat per veure si les insercions son correctes, s'ha detectat un nombre més elevat de registres insertats en un país: França amb 39.631
-
-Això ha provocat la creació d'un segon codi (france_diagnostic.py) per tal de detectar que estava succeïnt i s'ha obtingut que una sèrie de mesos tenien dos registres pel mateix quart horari.
-
-La web ENTSO-E conté dades d'una subasta paral·lela i per això la duplicitat de dades.
-Aquest fet també és comú tan a Àustria com a Alemanya (per això encara no estan inserits en base de dades).
-![Descripción de la imagen](images/Aus-Ger(DoubleSequence).png)
+```text
+tfg/
+├── NordPoool/
+│   └── data/
+├── src/
+│   └── experiments/
+├── results/
+│   └── final_event_training_experiment/
+├── README.md
+├── requirements.txt
+└── thesis_database.db / data files if included
