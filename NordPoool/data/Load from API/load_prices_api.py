@@ -11,24 +11,13 @@ import json
 # ============================================================
 # CONFIGURATION
 # ============================================================
+script_dir = Path(__file__).resolve().parent
+data_dir = script_dir.parent
 
-project_root = Path(
-    r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\tfg\NordPoool"
-)
+db_path = data_dir / "thesis_database.db"
 
-db_path = project_root / "data" / "thesis_database.db"
-
-checkpoint_path = (
-    project_root
-    / "data"
-    / "load_prices_checkpoint.json"
-)
-
-errors_path = (
-    project_root
-    / "data"
-    / "load_prices_errors.csv"
-)
+checkpoint_path = data_dir / "load_prices_checkpoint.json"
+errors_path = data_dir / "load_prices_errors.csv"
 
 
 # Rango completo
