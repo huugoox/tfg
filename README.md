@@ -1,83 +1,241 @@
-# TFG
-## 01-03-2026
-**Tasques realitzades:**
+# Nord Pool Electricity Market Database
 
-**DEFINICIÓ DE DADES I ESTRUCTURA INICIAL**
+This folder contains the SQLite database used for the Bachelor Thesis **Data-Efficient Electricity Price Forecasting Using Event-Based Market Representations**.
 
-1. <u>Creació base de dades no relacional </u>
+The database includes historical Nord Pool Day-Ahead market data used in the project, including electricity prices, volumes, flows and transmission capacities.
 
-    S’ha creat una base de dades en MongoDB (Sense esquema predefinit)
+## Files
 
-2. <u> Configuració d'un contenidor Docker per a la base de dades + Volum persistent per a l’emmagatzematge de dades. </u>
+- `thesis_database.db` — SQLite database containing the collected Nord Pool market data.
+- `README.md` — Instructions for accessing, understanding and updating the database.
+- `requirements.txt` — Python dependencies required to run the data download scripts available in the GitHub repository.
 
-    Creació docker-compose.yml amb imatge de mongodb
+The scripts used to download and update the database are available in the project GitHub repository:
 
+https://github.com/huugoox/tfg
 
-**EXTRACIÓ I INGESTIÓ DE DADES**
+The data download scripts are not located in the main branch. They can be found in the `data` branch of the repository, under:
 
-Per aquesta tasca s’ha definit un arxiu main.py en el qual es realitzen els següents pasos:
+`NordPoool/data/Load from API`
 
-1. <u> Connexió base de dades </u>
+## Database contents
 
-    Mitjançant una classe DbClient en el arxiu db_client.py es fa la connexió amb la base de dades tfg_database que tenim a MongoDb creada.
+The SQLite database contains the main Nord Pool Day-Ahead market data used in the project.
 
-Tot el procés que es menciona a continuació s'ha realitzat en base a un tipus concret d'arxiu: preus extrets d'ENTSO-E desde el 01/01/2025 al 31/12/2025 (període d'un any).
+The main tables are:
 
-2. <u>  Processament arxius </u>
+- `BiddingZones` — mapping between the internal zone identifiers and the Nord Pool bidding-zone codes.
+- `Prices` — Day-Ahead electricity prices.
+- `Volumes` — Day-Ahead buy and sell volumes.
+- `Flows` — electricity flows between bidding zones.
+- `Capacities` — transmission capacities between bidding zones.
 
-    Descarrega manual de les dades desde la web ENTSO-E i creació de dues carpetes (ExcelFilesNoProcessed,ExcelFilesProcessed)
+The available historical coverage differs between tables:
 
-    *Actualment aquest procés es realitza de manera manual, es preveu automatitzar-lo mitjançant tècniques com ara l’ús de Selenium (problemes amb el login i doble factor).
+- `Prices`: from **2000-01-01** to **2026-09-09**
+- `Volumes`: from **2015-01-01** to **2026-09-09**
+- `Flows`: from **2015-01-01** to **2026-09-09**
+- `Capacities`: from **2015-01-01** to **2026-09-09**
 
-3. <u> Extració </u>
+The tables use internal zone identifiers such as `zone_id`, `from_zone_id` and `to_zone_id`. These identifiers can be matched with the corresponding Nord Pool area codes through the `BiddingZones` table.
 
-    Mitjançant una classe Extractor en el arxiu extractor.py (s’extreuen les dades en funció del format del document)
+The bidding zones included in this database were selected to ensure consistency with the scope and requirements of this project.
 
-4. <u> Inserció base de dades </u>
+Nord Pool also provides data for additional bidding zones that were not required for this work. These areas may nevertheless be useful for other applications and can be accessed through the Nord Pool Data API.
 
-    Mitjançant una classe DbClient en el arxiu db_client.py es fa la connexió amb la base de dades tfg_database que tenim a MongoDb creada.
+## Table structure
 
+### BiddingZones
 
-**ANÀLISIS DE DADES**
+- `zone_id` — internal identifier used in the database.
+- `zone_code` — Nord Pool bidding-zone code, such as `NO1`, `SE3` or `DK1`.
 
-**Detecció 1**
+### Prices
 
-En un primer anàlisis per tal de veure si tots els registres s’han guardat correctament s’ha detectat la següent anomalia:
+- `zone_id` — bidding-zone identifier.
+- `delivery_day` — delivery date.
+- `hour` — delivery hour.
+- `price_value` — Day-Ahead electricity price.
 
-Les dades estan registrades cada 15 minuts durant cada hora i dia de l’any la qual cosa ens genera un total de 35.040 registres (4 * 24 * 365). 
+### Volumes
 
-*En anys de 366 dies serien: 35.136
+- `zone_id` — bidding-zone identifier.
+- `delivery_day` — delivery date.
+- `hour` — delivery hour.
+- `buy_volume_value` — Day-Ahead buy volume.
+- `sell_volume_value` — Day-Ahead sell volume.
 
-La creació de un petit codi en el arxiu check_db.py ens ha permès detectar una anomalía relacionada amb el nombre de registres guardats.
-Aquest ens indica que cada zona conté 35.028 cosa que denota una falta, no molt significativa, de 12 registres per zona.
+### Flows
 
-Després d'un anàlisi dels factors que podrien haver provocat aquest fet s'ha arribat a la següent conclusió:
-Els dies on es canvia la hora, en l’any 2025 van estar 30/03 i 26/10.
+- `from_zone_id` — origin bidding zone.
+- `to_zone_id` — destination bidding zone.
+- `delivery_day` — delivery date.
+- `hour` — delivery hour.
+- `flow_value` — electricity flow from the origin zone to the destination zone.
 
-En aquests les dades tenen un format lleugerament diferent:
-1. Cas 30/03
-En aquest cas l’hora s'adelante per lo tant tindrem 23 hores en el dia, és a dir, de 02.00 a 03.00 no hi ha dades perquè aquesta hora no existeix.
+### Capacities
 
-    ![Descripción de la imagen](images/Cas%201%20(30-03).png)
+- `capacity_code` — connection identifier in the format `FROM->TO`.
+- `from_zone_id` — origin bidding zone.
+- `to_zone_id` — destination bidding zone.
+- `delivery_day` — delivery date.
+- `hour` — delivery hour.
+- `capacity_value` — transmission capacity from the origin zone to the destination zone.
 
-2. Cas 26/10
-En aquest cas l’hora s’atrassa per lo tant tindriem 25 hores en el dia.
-    ![Descripción de la imagen](images/Cas%202%20(26-10).png)
+## How to open the database with DBeaver
 
-Tot i així tindrem 35.028 de 35.040 que sería un 99.96% de dades la qual cosa representa perdre un 0.04% de les dades únicament per utilitzar una plataforma diferent.
+The database is stored in the file:
 
-Les dues solucions possibles passen per:
+`thesis_database.db`
 
-1. Adaptar el codi d'extractor.py per aquestes files en concret
-2. Utilitzar dades de NordPool (podien contenir anomalíes també)
+To open it with DBeaver:
 
+1. Open DBeaver.
+2. Go to **Database > New Database Connection**.
+3. Select **SQLite**.
+4. Select the file `thesis_database.db`.
+5. Click **Finish** to create the connection.
+6. In the left panel, expand the connection and open **Tables**.
+7. To inspect a table, right-click it and select **View Data > All Rows**.
 
-**Detecció 2**
+SQL queries can also be executed using the DBeaver SQL Editor.
 
-Amb el mateix codi utilitzat per veure si les insercions son correctes, s'ha detectat un nombre més elevat de registres insertats en un país: França amb 39.631
+### Example queries
 
-Això ha provocat la creació d'un segon codi (france_diagnostic.py) per tal de detectar que estava succeïnt i s'ha obtingut que una sèrie de mesos tenien dos registres pel mateix quart horari.
+Show the first 100 price records:
 
-La web ENTSO-E conté dades d'una subasta paral·lela i per això la duplicitat de dades.
-Aquest fet també és comú tan a Àustria com a Alemanya (per això encara no estan inserits en base de dades).
-![Descripción de la imagen](images/Aus-Ger(DoubleSequence).png)
+```sql
+SELECT *
+FROM Prices
+LIMIT 100;
+```
+
+```sql
+SELECT
+    MIN(delivery_day) AS first_date,
+    MAX(delivery_day) AS last_date
+FROM Prices;
+```
+```sql
+SELECT
+    p.delivery_day,
+    p.hour,
+    b.zone_code,
+    p.price_value
+FROM Prices p
+JOIN BiddingZones b
+    ON p.zone_id = b.zone_id
+ORDER BY p.delivery_day, p.hour, b.zone_code;
+```
+
+## Downloading additional Nord Pool data
+
+Additional Nord Pool Day-Ahead data can be downloaded using the scripts available in the project GitHub repository mentioned above in the **Files** section.
+
+The available loaders are:
+
+- `load_prices_api.py` — downloads Day-Ahead prices.
+- `load_volumes_api.py` — downloads Day-Ahead buy and sell volumes.
+- `load_flows_api.py` — downloads flows between bidding zones.
+- `load_capacities_api.py` — downloads transmission capacities between bidding zones.
+
+The scripts insert the downloaded data directly into the corresponding tables of `thesis_database.db`.
+
+### Nord Pool API access
+
+Valid Nord Pool Data API credentials are required to download additional data.
+
+For security reasons, the credentials are not stored in the scripts or in the repository.
+
+The scripts read the following environment variables:
+
+`NORDPOOL_USERNAME`
+
+`NORDPOOL_PASSWORD`
+
+In Windows PowerShell, they can be configured for the current session with:
+
+```powershell
+$env:NORDPOOL_USERNAME="your_username"
+$env:NORDPOOL_PASSWORD="your_password"
+```
+
+After setting the credentials, the desired loader can be executed from PowerShell, for example:
+
+```powershell
+python load_prices_api.py
+```
+
+The same procedure can be used for the other loaders:
+
+```powershell
+python load_volumes_api.py
+python load_flows_api.py
+python load_capacities_api.py
+```
+
+### Selecting the download period
+
+The date range to be downloaded can be configured directly inside each loader script using:
+
+```python
+START_DATE = date(2000, 1, 1)
+END_DATE = date(2026, 9, 9)
+```
+
+These values can be modified according to the period that needs to be downloaded.
+
+For example, to download only data from 2025:
+
+```python
+START_DATE = date(2025, 1, 1)
+END_DATE = date(2025, 12, 31)
+```
+
+### Resuming interrupted downloads
+
+Each loader includes a resume option:
+
+```python
+RESUME = True
+```
+
+When `RESUME` is set to `True`, the script uses its corresponding checkpoint file and continues from the day after the last successfully processed date.
+
+This allows long downloads to be resumed if the process is interrupted.
+
+For example:
+
+```text
+Last processed date: 2014-08-15
+Next execution starts from: 2014-08-16
+```
+
+If a specific period needs to be downloaded again, `RESUME` can temporarily be set to:
+
+```python
+RESUME = False
+```
+
+In that case, the script will use the dates defined in `START_DATE` and `END_DATE` without using the checkpoint.
+
+Each data type uses its own checkpoint file, so prices, volumes, flows and capacities can be resumed independently.
+
+## Requirements
+
+Python 3 is required to run the data download scripts.
+
+The required external packages are listed in `requirements.txt`.
+
+They can be installed from PowerShell using:
+
+```powershell
+pip install -r requirements.txt
+```
+
+The main external dependencies are:
+
+- `pandas`
+- `requests`
+
+SQLite support is included in Python through the standard `sqlite3` library, so no additional SQLite package is required.
