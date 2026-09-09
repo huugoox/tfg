@@ -4,49 +4,124 @@ import sqlite3
 import requests
 import pandas as pd
 import os
+import time
+import json
 
 
-# =========================
-# PATHS
-# =========================
-project_root = Path(r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\tfg\NordPoool")
+# ============================================================
+# CONFIGURATION
+# ============================================================
+
+project_root = Path(
+    r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\tfg\NordPoool"
+)
+
 db_path = project_root / "data" / "thesis_database.db"
 
+checkpoint_path = (
+    project_root
+    / "data"
+    / "load_capacities_checkpoint.json"
+)
+
+errors_path = (
+    project_root
+    / "data"
+    / "load_capacities_errors.csv"
+)
+
+
+START_DATE = date(2000, 1, 1)
+END_DATE = date(2026, 9, 9)
+
+MAX_RETRIES = 5
+
+REQUEST_TIMEOUT = (10, 60)
+
+RESUME = True
+
+
+# ============================================================
+# CHECK DATABASE
+# ============================================================
+
 if not db_path.exists():
-    raise FileNotFoundError(f"No existe la base de datos: {db_path}")
+    raise FileNotFoundError(
+        f"No existe la base de datos:\n{db_path}"
+    )
 
 
-# =========================
-# API CONFIG
-# =========================
+# ============================================================
+# API CREDENTIALS
+# ============================================================
+
 USERNAME = os.getenv("NORDPOOL_USERNAME")
 PASSWORD = os.getenv("NORDPOOL_PASSWORD")
 
-if USERNAME is None or PASSWORD is None:
-    raise ValueError("Faltan las variables de entorno NORDPOOL_USERNAME o NORDPOOL_PASSWORD")
+if not USERNAME or not PASSWORD:
+    raise ValueError(
+        "Faltan las variables de entorno "
+        "NORDPOOL_USERNAME o NORDPOOL_PASSWORD"
+    )
 
-TOKEN_URL = "https://sts.nordpoolgroup.com/connect/token"
-CAPACITIES_URL = "https://data-api.nordpoolgroup.com/api/v2/Auction/Capacities/ByAreas"
+
+# ============================================================
+# API CONFIGURATION
+# ============================================================
+
+TOKEN_URL = (
+    "https://sts.nordpoolgroup.com/connect/token"
+)
+
+CAPACITIES_URL = (
+    "https://data-api.nordpoolgroup.com/"
+    "api/v2/Auction/Capacities/ByAreas"
+)
 
 AREAS = [
-    "DK1", "DK2",
-    "EE", "FI", "LT", "LV",
-    "NO1", "NO2", "NO3", "NO4", "NO5",
-    "SE1", "SE2", "SE3", "SE4"
+    "DK1",
+    "DK2",
+    "EE",
+    "FI",
+    "LT",
+    "LV",
+    "NO1",
+    "NO2",
+    "NO3",
+    "NO4",
+    "NO5",
+    "SE1",
+    "SE2",
+    "SE3",
+    "SE4",
 ]
 
 MARKET = "DayAhead"
 
-START_DATE = date(2004, 1, 1)
-END_DATE = date(2007, 12, 31)
 
-# =========================
-# GET ACCESS TOKEN
-# =========================
-def get_access_token(username: str, password: str) -> str:
+# ============================================================
+# HTTP SESSION
+# ============================================================
+
+session = requests.Session()
+
+
+# ============================================================
+# ACCESS TOKEN
+# ============================================================
+
+def get_access_token(username, password):
+
+    print("Obteniendo access token...")
+
     headers = {
-        "Authorization": "Basic Y2xpZW50X21hcmtldGRhdGFfYXBpOmNsaWVudF9tYXJrZXRkYXRhX2FwaQ==",
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization":
+            "Basic "
+            "Y2xpZW50X21hcmtldGRhdGFfYXBp"
+            "OmNsaWVudF9tYXJrZXRkYXRhX2FwaQ==",
+
+        "Content-Type":
+            "application/x-www-form-urlencoded",
     }
 
     data = {
@@ -56,337 +131,1171 @@ def get_access_token(username: str, password: str) -> str:
         "password": password,
     }
 
-    response = requests.post(TOKEN_URL, headers=headers, data=data)
+    response = session.post(
+        TOKEN_URL,
+        headers=headers,
+        data=data,
+        timeout=REQUEST_TIMEOUT,
+    )
 
     if response.status_code != 200:
         raise RuntimeError(
-            f"Error obteniendo token: {response.status_code}\n{response.text[:1000]}"
+            f"Error obteniendo token: "
+            f"{response.status_code}\n"
+            f"{response.text[:1000]}"
         )
+
+    print("Token obtenido correctamente.")
 
     return response.json()["access_token"]
 
 
-# =========================
+# ============================================================
 # DATE RANGE
-# =========================
-def daterange(start_date: date, end_date: date):
+# ============================================================
+
+def daterange(start_date, end_date):
+
     current = start_date
 
     while current <= end_date:
+
         yield current
+
         current += timedelta(days=1)
 
 
-# =========================
-# DOWNLOAD ONE DAY
-# =========================
-def get_capacities_json_for_day(access_token: str, areas: list[str], day: date):
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Accept": "application/json",
+# ============================================================
+# CHECKPOINT
+# ============================================================
+
+def save_checkpoint(day):
+
+    data = {
+        "last_processed_date":
+            day.strftime("%Y-%m-%d")
     }
 
+    temp_path = checkpoint_path.with_suffix(".tmp")
+
+    with open(
+        temp_path,
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        json.dump(
+            data,
+            f,
+            indent=4
+        )
+
+    temp_path.replace(checkpoint_path)
+
+
+def load_checkpoint():
+
+    if not checkpoint_path.exists():
+        return None
+
+    try:
+
+        with open(
+            checkpoint_path,
+            "r",
+            encoding="utf-8"
+        ) as f:
+
+            data = json.load(f)
+
+        value = data.get(
+            "last_processed_date"
+        )
+
+        if not value:
+            return None
+
+        return date.fromisoformat(value)
+
+    except Exception as e:
+
+        print(
+            "No se ha podido leer el checkpoint:"
+        )
+
+        print(e)
+
+        return None
+
+
+# ============================================================
+# ERROR LOG
+# ============================================================
+
+def log_error(day, error):
+
+    new_row = pd.DataFrame(
+        [
+            {
+                "date":
+                    day.strftime("%Y-%m-%d"),
+
+                "error":
+                    str(error),
+            }
+        ]
+    )
+
+    if errors_path.exists():
+
+        new_row.to_csv(
+            errors_path,
+            mode="a",
+            header=False,
+            index=False
+        )
+
+    else:
+
+        new_row.to_csv(
+            errors_path,
+            index=False
+        )
+
+
+# ============================================================
+# DOWNLOAD ONE DAY
+# ============================================================
+
+def get_capacities_json_for_day(
+    access_token,
+    day
+):
+
     params = {
-        "areas": areas,
+        "areas": AREAS,
         "market": MARKET,
         "date": day.strftime("%Y-%m-%d"),
     }
 
-    response = requests.get(CAPACITIES_URL, headers=headers, params=params)
+    current_token = access_token
 
-    if response.status_code != 200:
-        raise RuntimeError(
-            f"Error descargando {day}: {response.status_code}\n{response.text[:1000]}"
-        )
+    for attempt in range(
+        1,
+        MAX_RETRIES + 1
+    ):
 
-    return response.json()
+        headers = {
+            "Authorization":
+                f"Bearer {current_token}",
+
+            "Accept":
+                "application/json",
+        }
+
+        try:
+
+            response = session.get(
+                CAPACITIES_URL,
+                headers=headers,
+                params=params,
+                timeout=REQUEST_TIMEOUT,
+            )
 
 
-# =========================
-# JSON TO LONG DATAFRAME
-# =========================
-def capacities_json_to_long_dataframe(data, valid_zone_codes: set[str]) -> pd.DataFrame:
+            # SUCCESS
+            if response.status_code == 200:
+
+                return (
+                    response.json(),
+                    current_token
+                )
+
+
+            # TOKEN EXPIRED
+            if response.status_code == 401:
+
+                print(
+                    "  Token expirado. "
+                    "Obteniendo uno nuevo..."
+                )
+
+                current_token = get_access_token(
+                    USERNAME,
+                    PASSWORD
+                )
+
+                continue
+
+
+            # TEMPORARY ERRORS
+            if response.status_code in [
+                429,
+                500,
+                502,
+                503,
+                504,
+            ]:
+
+                retry_after = (
+                    response.headers.get(
+                        "Retry-After"
+                    )
+                )
+
+                if (
+                    retry_after
+                    and retry_after.isdigit()
+                ):
+
+                    wait = int(retry_after)
+
+                else:
+
+                    wait = min(
+                        5 * (2 ** (attempt - 1)),
+                        60
+                    )
+
+                print(
+                    f"  Error HTTP "
+                    f"{response.status_code}."
+                )
+
+                print(
+                    f"  Reintento "
+                    f"{attempt}/{MAX_RETRIES} "
+                    f"en {wait}s..."
+                )
+
+                time.sleep(wait)
+
+                continue
+
+
+            # NON TEMPORARY ERROR
+            raise RuntimeError(
+                f"HTTP {response.status_code}: "
+                f"{response.text[:1000]}"
+            )
+
+
+        except requests.RequestException as e:
+
+            if attempt >= MAX_RETRIES:
+                raise RuntimeError(
+                    f"Error de conexión "
+                    f"después de "
+                    f"{MAX_RETRIES} intentos: "
+                    f"{e}"
+                )
+
+            wait = min(
+                5 * (2 ** (attempt - 1)),
+                60
+            )
+
+            print(
+                f"  Error de conexión: {e}"
+            )
+
+            print(
+                f"  Reintento "
+                f"{attempt}/{MAX_RETRIES} "
+                f"en {wait}s..."
+            )
+
+            time.sleep(wait)
+
+
+    raise RuntimeError(
+        "Se alcanzó el máximo "
+        "de reintentos."
+    )
+
+
+# ============================================================
+# DATABASE CONNECTION
+# ============================================================
+
+conn = sqlite3.connect(
+    db_path
+)
+
+
+# ============================================================
+# GET BIDDING ZONES
+# ============================================================
+
+zones_df = pd.read_sql_query(
+    """
+    SELECT
+        zone_id,
+        zone_code
+    FROM BiddingZones
+    """,
+    conn
+)
+
+zone_map = dict(
+    zip(
+        zones_df["zone_code"],
+        zones_df["zone_id"]
+    )
+)
+
+valid_zone_codes = set(
+    zone_map.keys()
+)
+
+id_to_zone = {
+    v: k
+    for k, v in zone_map.items()
+}
+
+
+print(
+    "\nZonas disponibles en la DB:"
+)
+
+print(
+    sorted(valid_zone_codes)
+)
+
+
+# ============================================================
+# JSON -> DATAFRAME
+# ============================================================
+
+def capacities_json_to_long_dataframe(
+    data,
+    valid_zone_codes
+):
+
     rows = []
     skipped_external_connections = set()
 
-    for area_data in data:
-        delivery_area = area_data["deliveryArea"]
+    if not data:
+        return pd.DataFrame()
 
-        if delivery_area not in valid_zone_codes:
-            skipped_external_connections.add(delivery_area)
+    for area_data in data:
+
+        delivery_area = area_data.get(
+            "deliveryArea"
+        )
+
+        if (
+            delivery_area
+            not in valid_zone_codes
+        ):
+
+            skipped_external_connections.add(
+                delivery_area
+            )
+
             continue
 
-        for capacity_item in area_data["capacities"]:
-            delivery_start_utc = pd.to_datetime(capacity_item["deliveryStart"], utc=True)
-            delivery_start_local = delivery_start_utc.tz_convert("Europe/Oslo")
 
-            delivery_day = delivery_start_local.date()
-            hour = delivery_start_local.hour
+        capacities = area_data.get(
+            "capacities",
+            []
+        )
 
-            # Imports into delivery_area:
+
+        for capacity_item in capacities:
+
+            delivery_start_utc = (
+                pd.to_datetime(
+                    capacity_item["deliveryStart"],
+                    utc=True
+                )
+            )
+
+            delivery_start_local = (
+                delivery_start_utc
+                .tz_convert(
+                    "Europe/Oslo"
+                )
+            )
+
+            delivery_day = (
+                delivery_start_local.date()
+            )
+
+            hour = (
+                delivery_start_local.hour
+            )
+
+
+            # ==================================================
+            # IMPORTS INTO DELIVERY AREA
             # connection_area -> delivery_area
-            for connection in capacity_item.get("importsByConnection", []):
-                connection_area = connection["area"]
+            # ==================================================
 
-                if connection_area not in valid_zone_codes:
-                    skipped_external_connections.add(connection_area)
+            for connection in (
+                capacity_item.get(
+                    "importsByConnection",
+                    []
+                )
+            ):
+
+                connection_area = (
+                    connection.get("area")
+                )
+
+                if (
+                    connection_area
+                    not in valid_zone_codes
+                ):
+
+                    skipped_external_connections.add(
+                        connection_area
+                    )
+
                     continue
 
-                capacity_value = connection.get("capacity", None)
 
-                rows.append({
-                    "from_zone_code": connection_area,
-                    "to_zone_code": delivery_area,
-                    "delivery_day": delivery_day,
-                    "hour": hour,
-                    "capacity_value": capacity_value,
-                })
+                capacity_value = (
+                    connection.get(
+                        "capacity",
+                        None
+                    )
+                )
 
-            # Exports from delivery_area:
+
+                rows.append(
+                    {
+                        "from_zone_code":
+                            connection_area,
+
+                        "to_zone_code":
+                            delivery_area,
+
+                        "delivery_day":
+                            delivery_day,
+
+                        "hour":
+                            hour,
+
+                        "capacity_value":
+                            capacity_value,
+                    }
+                )
+
+
+            # ==================================================
+            # EXPORTS FROM DELIVERY AREA
             # delivery_area -> connection_area
-            for connection in capacity_item.get("exportsByConnection", []):
-                connection_area = connection["area"]
+            # ==================================================
 
-                if connection_area not in valid_zone_codes:
-                    skipped_external_connections.add(connection_area)
+            for connection in (
+                capacity_item.get(
+                    "exportsByConnection",
+                    []
+                )
+            ):
+
+                connection_area = (
+                    connection.get("area")
+                )
+
+                if (
+                    connection_area
+                    not in valid_zone_codes
+                ):
+
+                    skipped_external_connections.add(
+                        connection_area
+                    )
+
                     continue
 
-                capacity_value = connection.get("capacity", None)
 
-                rows.append({
-                    "from_zone_code": delivery_area,
-                    "to_zone_code": connection_area,
-                    "delivery_day": delivery_day,
-                    "hour": hour,
-                    "capacity_value": capacity_value,
-                })
+                capacity_value = (
+                    connection.get(
+                        "capacity",
+                        None
+                    )
+                )
 
-    df = pd.DataFrame(rows)
+
+                rows.append(
+                    {
+                        "from_zone_code":
+                            delivery_area,
+
+                        "to_zone_code":
+                            connection_area,
+
+                        "delivery_day":
+                            delivery_day,
+
+                        "hour":
+                            hour,
+
+                        "capacity_value":
+                            capacity_value,
+                    }
+                )
+
 
     if skipped_external_connections:
+
         print(
-            "Conexiones externas ignoradas porque no están en BiddingZones:",
-            sorted(skipped_external_connections)
+            "  Conexiones externas ignoradas:",
+            sorted(
+                skipped_external_connections
+            )
         )
+
+
+    return pd.DataFrame(rows)
+
+
+# ============================================================
+# PREPARE DATAFRAME
+# ============================================================
+
+def prepare_dataframe(df):
+
+    if df.empty:
+        return df
+
+    df = df.copy()
+
+
+    # ========================================================
+    # MAP ZONES
+    # ========================================================
+
+    df["from_zone_id"] = (
+        df["from_zone_code"]
+        .map(zone_map)
+    )
+
+    df["to_zone_id"] = (
+        df["to_zone_code"]
+        .map(zone_map)
+    )
+
+
+    missing_from = df.loc[
+        df["from_zone_id"].isna(),
+        "from_zone_code"
+    ].unique()
+
+    missing_to = df.loc[
+        df["to_zone_id"].isna(),
+        "to_zone_code"
+    ].unique()
+
+
+    if (
+        len(missing_from) > 0
+        or len(missing_to) > 0
+    ):
+
+        raise ValueError(
+            "Zonas no encontradas. "
+            f"From missing: {missing_from}. "
+            f"To missing: {missing_to}"
+        )
+
+
+    # ========================================================
+    # FINAL COLUMNS
+    # ========================================================
+
+    df = df[
+        [
+            "from_zone_id",
+            "to_zone_id",
+            "delivery_day",
+            "hour",
+            "capacity_value",
+        ]
+    ].copy()
+
+
+    # ========================================================
+    # TYPES
+    # ========================================================
+
+    df["from_zone_id"] = (
+        df["from_zone_id"]
+        .astype(int)
+    )
+
+    df["to_zone_id"] = (
+        df["to_zone_id"]
+        .astype(int)
+    )
+
+    df["delivery_day"] = (
+        pd.to_datetime(
+            df["delivery_day"]
+        )
+        .dt.strftime("%Y-%m-%d")
+    )
+
+    df["hour"] = (
+        df["hour"]
+        .astype(int)
+    )
+
+    df["capacity_value"] = (
+        pd.to_numeric(
+            df["capacity_value"],
+            errors="coerce"
+        )
+    )
+
+
+    # ========================================================
+    # REMOVE INVALID
+    # ========================================================
+
+    df = df.dropna(
+        subset=[
+            "from_zone_id",
+            "to_zone_id",
+            "delivery_day",
+            "hour",
+            "capacity_value",
+        ]
+    )
+
+
+    # ========================================================
+    # CHECK DUPLICATE CONSISTENCY
+    # ========================================================
+
+    duplicate_check = (
+        df
+        .groupby(
+            [
+                "from_zone_id",
+                "to_zone_id",
+                "delivery_day",
+                "hour"
+            ]
+        )
+        .agg(
+            n=("capacity_value", "count"),
+            min_capacity=("capacity_value", "min"),
+            max_capacity=("capacity_value", "max")
+        )
+        .reset_index()
+    )
+
+
+    inconsistent_duplicates = (
+        duplicate_check[
+            (duplicate_check["n"] > 1)
+            &
+            (
+                duplicate_check["min_capacity"]
+                !=
+                duplicate_check["max_capacity"]
+            )
+        ]
+    )
+
+
+    if not inconsistent_duplicates.empty:
+
+        print(
+            "\n  ATENCIÓN: "
+            "hay duplicados con valores distintos."
+        )
+
+        print(
+            inconsistent_duplicates.head(20)
+        )
+
+
+    # ========================================================
+    # REMOVE DUPLICATES
+    # ========================================================
+
+    duplicate_mask = (
+        df.duplicated(
+            subset=[
+                "from_zone_id",
+                "to_zone_id",
+                "delivery_day",
+                "hour",
+            ],
+            keep="first"
+        )
+    )
+
+    num_duplicates = (
+        duplicate_mask.sum()
+    )
+
+
+    if num_duplicates > 0:
+
+        print(
+            f"  Duplicados detectados: "
+            f"{num_duplicates}"
+        )
+
+
+    df = (
+        df.drop_duplicates(
+            subset=[
+                "from_zone_id",
+                "to_zone_id",
+                "delivery_day",
+                "hour",
+            ],
+            keep="first"
+        )
+        .copy()
+    )
+
+
+    # ========================================================
+    # ADD CAPACITY CODE
+    # ========================================================
+
+    df["capacity_code"] = (
+        df["from_zone_id"]
+        .map(id_to_zone)
+        +
+        "->"
+        +
+        df["to_zone_id"]
+        .map(id_to_zone)
+    )
+
+
+    # ========================================================
+    # COLUMN ORDER
+    # ========================================================
+
+    df = df[
+        [
+            "capacity_code",
+            "from_zone_id",
+            "to_zone_id",
+            "delivery_day",
+            "hour",
+            "capacity_value",
+        ]
+    ].copy()
+
+
+    # ========================================================
+    # SORT
+    # ========================================================
+
+    df = (
+        df.sort_values(
+            [
+                "delivery_day",
+                "hour",
+                "from_zone_id",
+                "to_zone_id",
+            ]
+        )
+        .reset_index(drop=True)
+    )
+
 
     return df
 
 
-# =========================
-# MAIN
-# =========================
-print("Obteniendo access token...")
-access_token = get_access_token(USERNAME, PASSWORD)
+# ============================================================
+# INSERT ONE DAY
+# ============================================================
 
-
-# =========================
-# CONNECT TO DB AND GET ZONES
-# =========================
-conn = sqlite3.connect(db_path)
-
-zones_df = pd.read_sql_query(
-    "SELECT zone_id, zone_code FROM BiddingZones",
-    conn
-)
-
-zone_map = dict(zip(zones_df["zone_code"], zones_df["zone_id"]))
-valid_zone_codes = set(zone_map.keys())
-
-print("\nZone codes en DB:", sorted(valid_zone_codes))
-
-
-# =========================
-# DOWNLOAD DATA
-# =========================
-all_capacities = []
-
-for day in daterange(START_DATE, END_DATE):
-    print(f"Descargando capacities para {day}...")
-
-    data = get_capacities_json_for_day(
-        access_token=access_token,
-        areas=AREAS,
-        day=day
-    )
-
-    df_day = capacities_json_to_long_dataframe(
-        data=data,
-        valid_zone_codes=valid_zone_codes
-    )
-
-    all_capacities.append(df_day)
-
-if not all_capacities:
-    conn.close()
-    raise ValueError("No se ha descargado ningún dato.")
-
-capacities_long = pd.concat(all_capacities, ignore_index=True)
-
-if capacities_long.empty:
-    conn.close()
-    raise ValueError("La descarga no produjo capacities internas entre zonas de la DB.")
-
-print("\nShape descargado:", capacities_long.shape)
-print(capacities_long.head())
-
-
-# =========================
-# MAP ZONE CODES TO ZONE IDS
-# =========================
-capacities_long["from_zone_id"] = capacities_long["from_zone_code"].map(zone_map)
-capacities_long["to_zone_id"] = capacities_long["to_zone_code"].map(zone_map)
-
-missing_from = capacities_long.loc[
-    capacities_long["from_zone_id"].isna(),
-    "from_zone_code"
-].unique()
-
-missing_to = capacities_long.loc[
-    capacities_long["to_zone_id"].isna(),
-    "to_zone_code"
-].unique()
-
-if len(missing_from) > 0 or len(missing_to) > 0:
-    conn.close()
-    raise ValueError(
-        f"Zonas no encontradas. From missing: {missing_from}. To missing: {missing_to}"
-    )
-
-
-# =========================
-# FINAL DATAFRAME
-# =========================
-capacities_final = capacities_long[
-    ["from_zone_id", "to_zone_id", "delivery_day", "hour", "capacity_value"]
-].copy()
-
-capacities_final["from_zone_id"] = capacities_final["from_zone_id"].astype(int)
-capacities_final["to_zone_id"] = capacities_final["to_zone_id"].astype(int)
-
-capacities_final["delivery_day"] = pd.to_datetime(
-    capacities_final["delivery_day"]
-).dt.strftime("%Y-%m-%d")
-
-capacities_final["hour"] = capacities_final["hour"].astype(int)
-
-capacities_final["capacity_value"] = pd.to_numeric(
-    capacities_final["capacity_value"],
-    errors="coerce"
-)
-
-capacities_final = capacities_final.dropna(
-    subset=["from_zone_id", "to_zone_id", "delivery_day", "hour", "capacity_value"]
-)
-
-
-# =========================
-# CHECK DUPLICATE CONSISTENCY
-# =========================
-duplicate_check = (
-    capacities_final
-    .groupby(["from_zone_id", "to_zone_id", "delivery_day", "hour"])
-    .agg(
-        n=("capacity_value", "count"),
-        min_capacity=("capacity_value", "min"),
-        max_capacity=("capacity_value", "max")
-    )
-    .reset_index()
-)
-
-inconsistent_duplicates = duplicate_check[
-    (duplicate_check["n"] > 1) &
-    (duplicate_check["min_capacity"] != duplicate_check["max_capacity"])
-]
-
-if not inconsistent_duplicates.empty:
-    print("\nATENCIÓN: Hay duplicados con valores distintos.")
-    print(inconsistent_duplicates.head(50))
-else:
-    print("\nDuplicados consistentes: los valores repetidos coinciden.")
-
-
-# =========================
-# REMOVE DUPLICATES
-# =========================
-print(f"\nFilas antes de deduplicar: {len(capacities_final)}")
-
-duplicate_mask = capacities_final.duplicated(
-    subset=["from_zone_id", "to_zone_id", "delivery_day", "hour"],
-    keep="first"
-)
-
-num_duplicates = duplicate_mask.sum()
-print(f"Duplicados detectados: {num_duplicates}")
-
-if num_duplicates > 0:
-    print("Ejemplo de duplicados:")
-    print(capacities_final.loc[duplicate_mask].head(10))
-
-capacities_final = capacities_final.drop_duplicates(
-    subset=["from_zone_id", "to_zone_id", "delivery_day", "hour"],
-    keep="first"
-).copy()
-
-
-# =========================
-# ADD CAPACITY CODE
-# =========================
-id_to_zone = {v: k for k, v in zone_map.items()}
-
-capacities_final["capacity_code"] = (
-    capacities_final["from_zone_id"].map(id_to_zone)
-    + "->"
-    + capacities_final["to_zone_id"].map(id_to_zone)
-)
-
-
-# =========================
-# SORT
-# =========================
-capacities_final = capacities_final[
-    ["capacity_code", "from_zone_id", "to_zone_id", "delivery_day", "hour", "capacity_value"]
-].copy()
-
-capacities_final = capacities_final.sort_values(
-    ["delivery_day", "hour", "from_zone_id", "to_zone_id"]
-).reset_index(drop=True)
-
-print("\nVista previa final:")
-print(capacities_final.head(20))
-print(f"\nFilas finales: {len(capacities_final)}")
-
-
-# =========================
-# RESET CAPACITIES TABLE
-# =========================
-# print("\nVaciando tabla Capacities y reiniciando capacity_id...")
-#
-# cursor = conn.cursor()
-#
-# cursor.execute("DELETE FROM Capacities")
-#
-# try:
-#     cursor.execute("DELETE FROM sqlite_sequence WHERE name = 'Capacities'")
-# except sqlite3.OperationalError:
-#     pass
-#
-# conn.commit()
-
-
-# =========================
-# INSERT INTO SQLITE
-# =========================
-print("\nInsertando datos en Capacities...")
-
-capacities_final.to_sql(
-    "Capacities",
+def save_day_to_database(
     conn,
-    if_exists="append",
-    index=False,
-    chunksize=10000
+    day,
+    df_day
+):
+
+    """
+    Guarda todas las capacities de un día.
+
+    Primero elimina las capacities existentes
+    para esa fecha para evitar duplicados.
+
+    Después inserta los nuevos datos.
+
+    Si algo falla, hace rollback.
+    """
+
+    day_string = (
+        day.strftime("%Y-%m-%d")
+    )
+
+    try:
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "BEGIN"
+        )
+
+
+        # ====================================================
+        # REMOVE EXISTING DAY
+        # ====================================================
+
+        cursor.execute(
+            """
+            DELETE FROM Capacities
+            WHERE delivery_day = ?
+            """,
+            (day_string,)
+        )
+
+
+        # ====================================================
+        # INSERT NEW DATA
+        # ====================================================
+
+        if not df_day.empty:
+
+            df_day.to_sql(
+                "Capacities",
+                conn,
+                if_exists="append",
+                index=False,
+                chunksize=5000,
+            )
+
+
+        # ====================================================
+        # COMMIT
+        # ====================================================
+
+        conn.commit()
+
+
+    except Exception:
+
+        conn.rollback()
+
+        raise
+
+
+# ============================================================
+# DETERMINE START DATE
+# ============================================================
+
+actual_start_date = START_DATE
+
+
+if RESUME:
+
+    checkpoint = load_checkpoint()
+
+    if checkpoint is not None:
+
+        candidate_date = (
+            checkpoint
+            + timedelta(days=1)
+        )
+
+        if candidate_date > START_DATE:
+
+            actual_start_date = (
+                candidate_date
+            )
+
+            print(
+                "\nCheckpoint encontrado."
+            )
+
+            print(
+                "Último día procesado:",
+                checkpoint
+            )
+
+            print(
+                "Continuando desde:",
+                actual_start_date
+            )
+
+
+if actual_start_date < START_DATE:
+
+    actual_start_date = START_DATE
+
+
+# ============================================================
+# DOWNLOAD
+# ============================================================
+
+print("\n====================================")
+print("DESCARGA NORD POOL CAPACITIES")
+print("====================================")
+
+print(
+    "Fecha inicial:",
+    actual_start_date
 )
 
-conn.commit()
-conn.close()
+print(
+    "Fecha final:",
+    END_DATE
+)
 
-print("\nCapacities insertadas correctamente.")
+print(
+    "Número aproximado de días:",
+    (END_DATE - actual_start_date).days + 1
+)
+
+print("====================================\n")
+
+
+access_token = get_access_token(
+    USERNAME,
+    PASSWORD
+)
+
+
+total_rows_session = 0
+processed_days = 0
+
+
+try:
+
+    for day in daterange(
+        actual_start_date,
+        END_DATE
+    ):
+
+        print(
+            f"\nDescargando capacities "
+            f"para {day}..."
+        )
+
+
+        try:
+
+            # ==================================================
+            # DOWNLOAD
+            # ==================================================
+
+            data, access_token = (
+                get_capacities_json_for_day(
+                    access_token,
+                    day
+                )
+            )
+
+
+            # ==================================================
+            # JSON -> DATAFRAME
+            # ==================================================
+
+            df_day = (
+                capacities_json_to_long_dataframe(
+                    data,
+                    valid_zone_codes
+                )
+            )
+
+
+            print(
+                f"  Filas recibidas: "
+                f"{len(df_day):,}"
+            )
+
+
+            # ==================================================
+            # NO DATA
+            # ==================================================
+
+            if df_day.empty:
+
+                print(
+                    "  Sin capacities internas "
+                    "para este día."
+                )
+
+                if RESUME:
+                    save_checkpoint(day)
+
+                processed_days += 1
+
+                continue
+
+
+            # ==================================================
+            # PREPARE
+            # ==================================================
+
+            df_day = prepare_dataframe(
+                df_day
+            )
+
+
+            print(
+                f"  Filas válidas: "
+                f"{len(df_day):,}"
+            )
+
+
+            # ==================================================
+            # DATABASE
+            # ==================================================
+
+            save_day_to_database(
+                conn,
+                day,
+                df_day
+            )
+
+
+            total_rows_session += (
+                len(df_day)
+            )
+
+            processed_days += 1
+
+
+            # ==================================================
+            # CHECKPOINT
+            # ==================================================
+
+            if RESUME:
+                save_checkpoint(day)
+
+
+            print(
+                f"  >>> {len(df_day):,} "
+                f"filas guardadas."
+            )
+
+            print(
+                f"  >>> Total sesión: "
+                f"{total_rows_session:,}"
+            )
+
+
+        # ======================================================
+        # ERROR FOR THIS DAY
+        # ======================================================
+
+        except Exception as e:
+
+            print("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+            print(
+                f"ERROR procesando {day}"
+            )
+
+            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+            print(e)
+
+
+            log_error(
+                day,
+                e
+            )
+
+
+            print(
+                "\nLa descarga se detiene "
+                "para no dejar huecos."
+            )
+
+            print(
+                "Vuelve a ejecutar el script "
+                "y continuará desde este día."
+            )
+
+            break
+
+
+# ============================================================
+# CTRL + C
+# ============================================================
+
+except KeyboardInterrupt:
+
+    print(
+        "\n\n===================================="
+    )
+
+    print(
+        "DESCARGA INTERRUMPIDA "
+        "MANUALMENTE"
+    )
+
+    print(
+        "===================================="
+    )
+
+    print(
+        "Los días anteriores ya están "
+        "guardados en SQLite."
+    )
+
+
+    checkpoint = load_checkpoint()
+
+    if checkpoint:
+
+        print(
+            "Último día completamente "
+            "guardado:",
+            checkpoint
+        )
+
+        print(
+            "La próxima ejecución "
+            "continuará desde:",
+            checkpoint + timedelta(days=1)
+        )
+
+
+# ============================================================
+# FINALLY
+# ============================================================
+
+finally:
+
+    conn.close()
+
+    session.close()
+
+
+# ============================================================
+# SUMMARY
+# ============================================================
+
+print("\n====================================")
+print("FIN DE LA EJECUCIÓN")
+print("====================================")
+
+print(
+    f"Días procesados "
+    f"esta sesión: {processed_days:,}"
+)
+
+print(
+    f"Filas guardadas "
+    f"esta sesión: {total_rows_session:,}"
+)
+
+
+checkpoint = load_checkpoint()
+
+if checkpoint:
+
+    print(
+        f"Última fecha procesada: "
+        f"{checkpoint}"
+    )
+
+
+print("====================================")
