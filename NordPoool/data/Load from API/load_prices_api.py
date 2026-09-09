@@ -24,7 +24,7 @@ errors_path = data_dir / "load_prices_errors.csv"
 
 
 # Rango completo
-START_DATE = date(2026, 9, 9)
+START_DATE = date(2020, 1, 1)
 END_DATE = date(2026, 9, 9)
 
 
@@ -40,7 +40,7 @@ REQUEST_TIMEOUT = (10, 60)
 
 # Si es True, utilizará el checkpoint y continuará
 # desde donde se quedó.
-RESUME = False
+RESUME = True
 
 
 # ============================================================

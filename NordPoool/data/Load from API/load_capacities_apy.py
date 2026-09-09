@@ -12,23 +12,13 @@ import json
 # CONFIGURATION
 # ============================================================
 
-project_root = Path(
-    r"C:\Users\HUGO\Desktop\Q8 - NORUEGA\TFG\tfg\NordPoool"
-)
+script_dir = Path(__file__).resolve().parent
+data_dir = script_dir.parent
 
-db_path = project_root / "data" / "thesis_database.db"
+db_path = data_dir / "thesis_database.db"
 
-checkpoint_path = (
-    project_root
-    / "data"
-    / "load_capacities_checkpoint.json"
-)
-
-errors_path = (
-    project_root
-    / "data"
-    / "load_capacities_errors.csv"
-)
+checkpoint_path = data_dir / "load_capacities_checkpoint.json"
+errors_path = data_dir / "load_capacities_errors.csv"
 
 
 START_DATE = date(2015, 1, 1)
