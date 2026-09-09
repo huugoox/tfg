@@ -31,7 +31,7 @@ errors_path = (
 )
 
 
-START_DATE = date(2000, 1, 1)
+START_DATE = date(2015, 1, 1)
 END_DATE = date(2026, 9, 9)
 
 MAX_RETRIES = 5
