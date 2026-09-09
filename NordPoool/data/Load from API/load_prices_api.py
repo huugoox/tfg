@@ -16,12 +16,15 @@ data_dir = script_dir.parent
 
 db_path = data_dir / "thesis_database.db"
 
+print("Database path:", db_path)
+print("Database exists:", db_path.exists())
+
 checkpoint_path = data_dir / "load_prices_checkpoint.json"
 errors_path = data_dir / "load_prices_errors.csv"
 
 
 # Rango completo
-START_DATE = date(2000, 1, 1)
+START_DATE = date(2026, 9, 9)
 END_DATE = date(2026, 9, 9)
 
 
@@ -37,7 +40,7 @@ REQUEST_TIMEOUT = (10, 60)
 
 # Si es True, utilizará el checkpoint y continuará
 # desde donde se quedó.
-RESUME = True
+RESUME = False
 
 
 # ============================================================
