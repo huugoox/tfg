@@ -32,8 +32,8 @@ errors_path = (
 
 
 # Rango completo
-START_DATE = date(2015, 1, 1)
-END_DATE = date(2015, 1, 2)
+START_DATE = date(2015, 1, 3)
+END_DATE = date(2026, 9, 9)
 
 
 # Número de reintentos si hay errores temporales
@@ -48,7 +48,7 @@ REQUEST_TIMEOUT = (10, 60)
 
 # Si es True, utilizará el checkpoint y continuará
 # desde donde se quedó.
-RESUME = False
+RESUME = True
 
 
 # ============================================================
